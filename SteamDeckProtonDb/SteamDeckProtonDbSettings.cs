@@ -2,10 +2,6 @@
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;
-using Playnite.SDK;
-using Playnite.SDK.Data;
-using System;
-using System.Collections.Generic;
 
 namespace SteamDeckProtonDb
 {
