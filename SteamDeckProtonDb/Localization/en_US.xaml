@@ -1,5 +1,49 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-                    
+    <!-- Settings UI Labels -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckMetadata">Steam Deck Metadata</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableSteamDeckCategories">Enable Steam Deck Compatibility Categories</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckCategoriesDesc">When enabled, adds Steam Deck compatibility status (Verified/Playable/Unsupported) as categories to games.</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbMetadata">ProtonDB Metadata</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbCategories">Enable ProtonDB Tier Categories</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbCategoriesDesc">When enabled, adds ProtonDB tier (Platinum/Gold/Silver/Bronze/etc.) as categories to games.</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbLink">Enable ProtonDB Link</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbLinkDesc">When enabled, adds a link to the ProtonDB game page in game details.</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableTags">Enable Tags</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_TagsDesc">When enabled, adds tags for compatibility status (e.g., steamdeck:verified, protondb:platinum).</sys:String>
+    
+    <!-- Cache Settings -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_CacheSettings">Cache Settings</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_CacheTtl">Cache TTL (minutes):</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_CacheTtlDesc">How long to cache metadata before fetching fresh data from APIs. Default: 1440 minutes (24 hours).</sys:String>
+    
+    <!-- ProtonDB API Configuration -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ApiSettings">ProtonDB API Configuration</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrl">ProtonDB API URL:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrlDesc">The API endpoint for fetching ProtonDB data. Use {0} as placeholder for AppId.</sys:String>
+    
+    <!-- Category and Tag Names -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeck">Steam Deck</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckVerified">Steam Deck - Verified</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckPlayable">Steam Deck - Playable</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckUnsupported">Steam Deck - Unsupported</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDb">ProtonDB</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbPlatinum">ProtonDB - Platinum</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbGold">ProtonDB - Gold</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbSilver">ProtonDB - Silver</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbBronze">ProtonDB - Bronze</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbPlausible">ProtonDB - Plausible</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbBorked">ProtonDB - Borked</sys:String>
+    
+    <!-- Links -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Link_ProtonDb">ProtonDB</sys:String>
+    
+    <!-- Error Messages -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Error_InvalidApiUrl">Invalid ProtonDB API URL format.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_Error_InvalidCacheTtl">Cache TTL must be a positive number.</sys:String>
 </ResourceDictionary>

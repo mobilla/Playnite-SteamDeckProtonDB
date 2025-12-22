@@ -13,22 +13,21 @@ namespace SteamDeckProtonDb
     {
         private static readonly ILogger logger = LogManager.GetLogger();
 
-        private SteamDeckProtonDbSettingsViewModel settings { get; set; }
+        private SteamDeckProtonDbSettings settings { get; set; }
 
         public override Guid Id { get; } = Guid.Parse("78f86cf5-abfd-47e9-b753-6b81c29132ed");
 
         public override List<MetadataField> SupportedFields { get; } = new List<MetadataField>
         {
-            MetadataField.Description
-            // Include addition fields if supported by the metadata source
+            MetadataField.Tags,
+            MetadataField.Links
         };
 
-        // Change to something more appropriate
-        public override string Name => "Custom Metadata";
+        public override string Name => "Steam Deck & ProtonDB";
 
         public SteamDeckProtonDb(IPlayniteAPI api) : base(api)
         {
-            settings = new SteamDeckProtonDbSettingsViewModel(this);
+            settings = new SteamDeckProtonDbSettings(this);
             Properties = new MetadataPluginProperties
             {
                 HasSettings = true
@@ -47,7 +46,10 @@ namespace SteamDeckProtonDb
 
         public override UserControl GetSettingsView(bool firstRunSettings)
         {
-            return new SteamDeckProtonDbSettingsView();
+                // Ensure the view has the plugin settings as DataContext so bindings work
+                var view = new SteamDeckProtonDbSettingsView();
+                view.DataContext = settings;
+                return view;
         }
     }
 }

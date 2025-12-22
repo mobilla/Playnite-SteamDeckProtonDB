@@ -19,7 +19,22 @@ namespace SteamDeckProtonDb
     {
         public SteamDeckProtonDbSettingsView()
         {
-            InitializeComponent();
+            // Provide a safe default DataContext so bindings in XAML can be evaluated during design/runtime load
+            try
+            {
+                this.DataContext = new SteamDeckProtonDbSettings();
+            }
+            catch { }
+
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                try { Playnite.SDK.LogManager.GetLogger().Error("Settings view ctor failed: " + ex.ToString()); } catch { }
+                throw;
+            }
         }
     }
 }

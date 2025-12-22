@@ -2,88 +2,99 @@
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Playnite.SDK;
+using Playnite.SDK.Data;
+using System;
+using System.Collections.Generic;
 
 namespace SteamDeckProtonDb
 {
-    public class SteamDeckProtonDbSettings : ObservableObject
-    {
-        private string option1 = string.Empty;
-        private bool option2 = false;
-        private bool optionThatWontBeSaved = false;
-
-        public string Option1 { get => option1; set => SetValue(ref option1, value); }
-        public bool Option2 { get => option2; set => SetValue(ref option2, value); }
-        // Playnite serializes settings object to a JSON object and saves it as text file.
-        // If you want to exclude some property from being saved then use `JsonDontSerialize` ignore attribute.
-        [DontSerialize]
-        public bool OptionThatWontBeSaved { get => optionThatWontBeSaved; set => SetValue(ref optionThatWontBeSaved, value); }
-    }
-
-    public class SteamDeckProtonDbSettingsViewModel : ObservableObject, ISettings
+    public class SteamDeckProtonDbSettings : ObservableObject, ISettings
     {
         private readonly SteamDeckProtonDb plugin;
-        private SteamDeckProtonDbSettings editingClone { get; set; }
 
-        private SteamDeckProtonDbSettings settings;
-        public SteamDeckProtonDbSettings Settings
+        private bool enableSteamDeckCategories = true;
+        private bool enableProtonDbCategories = true;
+        private bool enableProtonDbLink = true;
+        private bool enableTags = true;
+        private int cacheTtlMinutes = 1440; // 24 hours default
+        private string protonDbApiUrl = "https://www.protondb.com/api/v1/reports/summaries/{0}.json";
+        private bool useFileCache = true;
+
+        // Parameterless constructor required for Playnite deserialization
+        public SteamDeckProtonDbSettings()
         {
-            get => settings;
-            set
-            {
-                settings = value;
-                OnPropertyChanged();
-            }
         }
 
-        public SteamDeckProtonDbSettingsViewModel(SteamDeckProtonDb plugin)
+        public SteamDeckProtonDbSettings(SteamDeckProtonDb plugin) : this()
         {
-            // Injecting your plugin instance is required for Save/Load method because Playnite saves data to a location based on what plugin requested the operation.
             this.plugin = plugin;
-
-            // Load saved settings.
-            var savedSettings = plugin.LoadPluginSettings<SteamDeckProtonDbSettings>();
-
-            // LoadPluginSettings returns null if no saved data is available.
-            if (savedSettings != null)
+            try
             {
-                Settings = savedSettings;
+                var saved = plugin?.LoadPluginSettings<SteamDeckProtonDbSettings>();
+                if (saved != null)
+                {
+                    EnableSteamDeckCategories = saved.EnableSteamDeckCategories;
+                    EnableProtonDbCategories = saved.EnableProtonDbCategories;
+                    EnableProtonDbLink = saved.EnableProtonDbLink;
+                    EnableTags = saved.EnableTags;
+                    CacheTtlMinutes = saved.CacheTtlMinutes;
+                    ProtonDbApiUrl = saved.ProtonDbApiUrl;
+                    UseFileCache = saved.UseFileCache;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Settings = new SteamDeckProtonDbSettings();
+                try { Playnite.SDK.LogManager.GetLogger().Error("Failed to load plugin settings: " + ex.Message); } catch { }
             }
         }
+
+        public bool EnableSteamDeckCategories { get => enableSteamDeckCategories; set => SetValue(ref enableSteamDeckCategories, value); }
+        public bool EnableProtonDbCategories { get => enableProtonDbCategories; set => SetValue(ref enableProtonDbCategories, value); }
+        public bool EnableProtonDbLink { get => enableProtonDbLink; set => SetValue(ref enableProtonDbLink, value); }
+        public bool EnableTags { get => enableTags; set => SetValue(ref enableTags, value); }
+        public int CacheTtlMinutes { get => cacheTtlMinutes; set => SetValue(ref cacheTtlMinutes, value); }
+        public string ProtonDbApiUrl { get => protonDbApiUrl; set => SetValue(ref protonDbApiUrl, value); }
+        public bool UseFileCache { get => useFileCache; set => SetValue(ref useFileCache, value); }
+
+        private SteamDeckProtonDbSettings editingClone;
 
         public void BeginEdit()
         {
-            // Code executed when settings view is opened and user starts editing values.
-            editingClone = Serialization.GetClone(Settings);
+            editingClone = Serialization.GetClone(this);
         }
 
         public void CancelEdit()
         {
-            // Code executed when user decides to cancel any changes made since BeginEdit was called.
-            // This method should revert any changes made to Option1 and Option2.
-            Settings = editingClone;
+            if (editingClone != null)
+            {
+                EnableSteamDeckCategories = editingClone.EnableSteamDeckCategories;
+                EnableProtonDbCategories = editingClone.EnableProtonDbCategories;
+                EnableProtonDbLink = editingClone.EnableProtonDbLink;
+                EnableTags = editingClone.EnableTags;
+                CacheTtlMinutes = editingClone.CacheTtlMinutes;
+                ProtonDbApiUrl = editingClone.ProtonDbApiUrl;
+                UseFileCache = editingClone.UseFileCache;
+            }
         }
 
         public void EndEdit()
         {
-            // Code executed when user decides to confirm changes made since BeginEdit was called.
-            // This method should save settings made to Option1 and Option2.
-            plugin.SavePluginSettings(Settings);
+            try
+            {
+                plugin?.SavePluginSettings(this);
+            }
+            catch (Exception ex)
+            {
+                try { Playnite.SDK.LogManager.GetLogger().Error("Failed to save plugin settings: " + ex.Message); } catch { }
+            }
         }
 
         public bool VerifySettings(out List<string> errors)
         {
-            // Code execute when user decides to confirm changes made since BeginEdit was called.
-            // Executed before EndEdit is called and EndEdit is not called if false is returned.
-            // List of errors is presented to user if verification fails.
             errors = new List<string>();
-            return true;
+            if (CacheTtlMinutes < 0) errors.Add("Cache TTL must be non-negative.");
+            return errors.Count == 0;
         }
     }
 }

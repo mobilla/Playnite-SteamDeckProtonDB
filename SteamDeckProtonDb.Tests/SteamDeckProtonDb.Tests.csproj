@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnitLite" Version="3.13.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SteamDeckProtonDb\SteamDeckProtonDb.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="Playnite.SDK">
+      <HintPath>..\SteamDeckProtonDb\packages\PlayniteSDK.6.2.0\lib\net462\Playnite.SDK.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

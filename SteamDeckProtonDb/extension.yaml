@@ -1,6 +1,6 @@
 ﻿Id: SteamDeckProtonDb_78f86cf5-abfd-47e9-b753-6b81c29132ed
-Name: Custom Metadata Provider
-Author: John Doe
+Name: Steam Deck Proton Db Metadata Provider
+Author: mobilla
 Version: 1.0
 Module: SteamDeckProtonDb.dll
 Type: MetadataProvider
