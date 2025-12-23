@@ -47,6 +47,7 @@
                 <TextBox Text="{Binding CacheTtlMinutes}" Width="100"/>
             </StackPanel>
             <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheTtlDesc}" FontSize="11" Foreground="Gray"/>
+            <Button x:Name="OpenCacheDirectoryButton" Content="Open Cache Directory" Margin="0,8,0,8" HorizontalAlignment="Left" Padding="10,5"/>
                         
             <!-- Rate Limiting Settings -->
             <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_RateLimiting}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>

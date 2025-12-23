@@ -17,13 +17,18 @@ using System.IO;
 using System.Xml;
 using System.Windows.Markup;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
+using Playnite.SDK;
 
 namespace SteamDeckProtonDb
 {
     public partial class SteamDeckProtonDbSettingsView : UserControl
     {
-        public SteamDeckProtonDbSettingsView()
+        private readonly SteamDeckProtonDb plugin;
+
+        public SteamDeckProtonDbSettingsView(SteamDeckProtonDb plugin = null)
         {
+            this.plugin = plugin;
             // Try to load via pack URI (compiled resource)
             try
             {
@@ -52,11 +57,13 @@ namespace SteamDeckProtonDb
                             if (loaded is UserControl uc && uc.Content is UIElement ui)
                             {
                                 Content = ui;
+                                WireUpEventHandlers(ui);
                                 return;
                             }
                             else if (loaded is UIElement el)
                             {
                                 Content = el;
+                                WireUpEventHandlers(el);
                                 return;
                             }
                         }
@@ -67,14 +74,93 @@ namespace SteamDeckProtonDb
                 }
 
                 // As a last resort, create minimal placeholder to avoid crashing settings
+                var fallbackButton = new Button
+                {
+                    Content = "Open Cache Directory",
+                    Margin = new Thickness(0, 8, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Padding = new Thickness(10, 5, 10, 5)
+                };
+                fallbackButton.Click += OpenCacheDirectory_Click;
+
                 Content = new StackPanel
                 {
+                    Margin = new Thickness(12),
                     Children =
                     {
                         new TextBlock { Text = "Failed to load settings view.", FontWeight = FontWeights.Bold, Margin = new Thickness(0,0,0,8) },
-                        new TextBlock { Text = "Please rebuild or ensure XAML file is present in output folder.", FontSize = 11, Foreground = System.Windows.Media.Brushes.Gray }
+                        new TextBlock { Text = "Please rebuild or ensure XAML file is present in output folder.", FontSize = 11, Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0,0,0,12) },
+                        new TextBlock { Text = "Cache Directory", FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0,8,0,8) },
+                        fallbackButton
                     }
                 };
+            }
+        }
+
+        private void WireUpEventHandlers(UIElement root)
+        {
+            // Find the button by searching the visual tree
+            var button = FindVisualChild<Button>(root, b => 
+                (b as FrameworkElement)?.Name == "OpenCacheDirectoryButton" || 
+                b.Content?.ToString() == "Open Cache Directory");
+            if (button != null)
+            {
+                button.Click += OpenCacheDirectory_Click;
+            }
+        }
+
+        private T FindVisualChild<T>(DependencyObject parent, Func<T, bool> predicate = null) where T : DependencyObject
+        {
+            if (parent == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                
+                if (child is T typedChild && (predicate == null || predicate(typedChild)))
+                {
+                    return typedChild;
+                }
+
+                var result = FindVisualChild(child, predicate);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        private void OpenCacheDirectory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (plugin == null)
+                {
+                    MessageBox.Show("Plugin reference not available.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var cacheDir = System.IO.Path.Combine(plugin.GetPluginUserDataPath(), "cache");
+                
+                // Create directory if it doesn't exist
+                if (!Directory.Exists(cacheDir))
+                {
+                    Directory.CreateDirectory(cacheDir);
+                }
+
+                // Open directory in file explorer
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = cacheDir,
+                    UseShellExecute = true,
+                    Verb = "open"
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open cache directory: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

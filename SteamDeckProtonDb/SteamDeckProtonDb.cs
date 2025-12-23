@@ -47,7 +47,7 @@ namespace SteamDeckProtonDb
 
         public override UserControl GetSettingsView(bool firstRunSettings)
         {
-            return new SteamDeckProtonDbSettingsView();
+            return new SteamDeckProtonDbSettingsView(this);
         }
 
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
