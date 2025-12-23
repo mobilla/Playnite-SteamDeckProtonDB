@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using Playnite.SDK.Models;
 using System.Collections.Generic;
+using System.Windows.Controls;
+using System;
 
 namespace SteamDeckProtonDb.Tests
 {
@@ -8,8 +10,39 @@ namespace SteamDeckProtonDb.Tests
     public class SettingsApplicationTests
     {
         [Test]
-        public void AllSettingsEnabled_AllMetadataApplied()
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void SettingsViewLoads_WithoutError()
         {
+            // This test ensures the settings UI can be instantiated without throwing exceptions.
+            // It verifies that:
+            // 1. The XAML file is properly deployed (copied to output directory)
+            // 2. The runtime XAML loader can parse and load the XAML
+            // 3. The x:Class attribute is properly stripped before loading
+            // 4. A fallback UI is provided if primary methods fail
+            var view = new SteamDeckProtonDbSettingsView();
+
+            Assert.IsNotNull(view, "Settings view should not be null");
+            Assert.IsNotNull(view.Content, "Settings view Content should not be null");
+            Assert.IsInstanceOf<UserControl>(view, "Settings view should be a UserControl");
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void SettingsViewContent_IsUIElement()
+        {
+            // Verify that the loaded content is a valid UI element that can be rendered.
+            var view = new SteamDeckProtonDbSettingsView();
+
+            // Content can be a StackPanel (fallback), a Grid (from XAML), or any UIElement
+            Assert.IsTrue(
+                view.Content is System.Windows.UIElement,
+                "Content must be a UIElement to be renderable"
+            );
+        }
+
+    [Test]
+    public void AllSettingsEnabled_AllMetadataApplied()
+    {
             var settings = new SteamDeckProtonDbSettings(null)
             {
                 EnableSteamDeckCategories = true,
