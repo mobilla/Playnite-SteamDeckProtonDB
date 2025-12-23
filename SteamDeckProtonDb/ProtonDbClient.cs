@@ -18,38 +18,38 @@ namespace SteamDeckProtonDb
     public class ProtonDbClient : IProtonDbClient, IDisposable
     {
         private readonly HttpClient http;
-        private readonly int maxRetries = 3;
         private readonly string apiUrlFormat;
+        private readonly IRateLimiterService rateLimiterService;
         private static readonly ILogger logger = LogManager.GetLogger();
-        private static readonly HttpClient sharedClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
+        private static readonly Lazy<HttpClient> sharedClient = new Lazy<HttpClient>(() =>
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            client.DefaultRequestHeaders.Add("User-Agent", Constants.UserAgent);
+            return client;
+        });
 
-        public ProtonDbClient(HttpMessageHandler handler = null, string apiUrlFormat = null)
+        public ProtonDbClient(HttpMessageHandler handler = null, string apiUrlFormat = null, IRateLimiterService rateLimiterService = null)
         {
             if (handler != null)
             {
-                http = new HttpClient(handler, disposeHandler: false);
+                http = new HttpClient(handler, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(10) };
+                http.DefaultRequestHeaders.Add("User-Agent", Constants.UserAgent);
             }
             else
             {
-                http = sharedClient;
+                http = sharedClient.Value;
             }
 
             apiUrlFormat = apiUrlFormat ?? "https://www.protondb.com/api/v1/reports/summaries/{0}.json";
             this.apiUrlFormat = apiUrlFormat;
-            try
-            {
-                http.Timeout = TimeSpan.FromSeconds(10);
-            }
-            catch (Exception ex)
-            {
-                logger.Debug("Failed to set HttpClient timeout: " + ex.Message);
-            }
+            this.rateLimiterService = rateLimiterService ?? new RateLimiterService();
         }
 
-        public ProtonDbClient(HttpClient client, string apiUrlFormat = null)
+        public ProtonDbClient(HttpClient client, string apiUrlFormat = null, IRateLimiterService rateLimiterService = null)
         {
             http = client ?? throw new ArgumentNullException(nameof(client));
             this.apiUrlFormat = apiUrlFormat ?? "https://www.protondb.com/api/v1/reports/summaries/{0}.json";
+            this.rateLimiterService = rateLimiterService ?? new RateLimiterService();
         }
 
         public async Task<ProtonDbResult> GetGameSummaryAsync(int appId, CancellationToken ct = default)
@@ -60,56 +60,63 @@ namespace SteamDeckProtonDb
             var jsonUrl = string.Format(apiUrlFormat ?? "https://www.protondb.com/api/v1/reports/summaries/{0}.json", appId);
             var fallbackUrl = $"https://www.protondb.com/app/{appId}";
             logger.Debug($"ProtonDB API call for appId {appId}: {jsonUrl}");
-            int attempt = 0;
-            while (true)
+            try
             {
-                attempt++;
-                try
-                {
-                    // Call the JSON summary endpoint and parse tier.
-                    var response = await http.GetAsync(jsonUrl, ct).ConfigureAwait(false);
-                    logger.Debug($"ProtonDB API response for appId {appId}: {response.StatusCode}");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        logger.Debug($"ProtonDB API body for appId {appId}: {body.Substring(0, Math.Min(200, body.Length))}...");
-                        try
-                        {
-                            var parsed = ParseJsonSummary(body);
-                            parsed.Url = parsed.Url ?? fallbackUrl;
-                            logger.Debug($"ProtonDB parsed tier for appId {appId}: {parsed.Tier}");
-                            return parsed;
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Debug("ParseJsonSummary failed: " + ex.Message);
-                            return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
-                        }
-                    }
+                // Execute through rate limiter pipeline (handles retries, rate limiting, circuit breaker, timeout)
+                var response = await rateLimiterService.ExecuteProtonDbAsync(
+                    async token => await http.GetAsync(jsonUrl, token).ConfigureAwait(false),
+                    ct
+                ).ConfigureAwait(false);
 
-                    // On 4xx/5xx, break or retry based on status code.
-                    if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+                logger.Debug($"ProtonDB API response for appId {appId}: {response.StatusCode}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    logger.Debug($"ProtonDB API body for appId {appId}: {body.Substring(0, Math.Min(200, body.Length))}...");
+                    try
                     {
+                        var parsed = ParseJsonSummary(body);
+                        parsed.Url = parsed.Url ?? fallbackUrl;
+                        logger.Debug($"ProtonDB parsed tier for appId {appId}: {parsed.Tier}");
+                        return parsed;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Debug("ParseJsonSummary failed: " + ex.Message);
                         return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
                     }
                 }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug("GetGameSummaryAsync request error: " + ex.Message);
-                }
 
-                if (attempt >= maxRetries)
+                // On 4xx (client error), return immediately without retry
+                if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
                 {
+                    logger.Debug($"ProtonDB API returned client error {response.StatusCode} for appId {appId}");
                     return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
                 }
-
-                // Exponential backoff
-                await Task.Delay(200 * (int)Math.Pow(2, attempt - 1), ct).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                logger.Debug($"ProtonDB API call cancelled for appId {appId}");
+                throw;
+            }
+            catch (Polly.CircuitBreaker.BrokenCircuitException)
+            {
+                logger.Debug($"ProtonDB circuit breaker open - service temporarily unavailable for appId {appId}");
+                return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
+            }
+            catch (Polly.Timeout.TimeoutRejectedException)
+            {
+                logger.Debug($"ProtonDB API request timeout for appId {appId}");
+                return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
+            }
+            catch (Exception ex)
+            {
+                logger.Debug($"GetGameSummaryAsync unexpected error: {ex.Message}");
+                return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
+            }
+
+            // Fallback: if we reach here without a return, treat as unknown.
+            return new ProtonDbResult { Tier = ProtonDbTier.Unknown, Url = fallbackUrl };
         }
 
         private ProtonDbResult ParseJsonSummary(string json)

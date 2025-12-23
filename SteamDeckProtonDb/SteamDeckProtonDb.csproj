@@ -31,7 +31,36 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Playnite.SDK, Version=6.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <PackageReference Include="Polly" Version="8.6.5" />
+    <PackageReference Include="Polly.Core" Version="8.6.5" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Polly">
+      <HintPath>$(USERPROFILE)\.nuget\packages\polly\8.6.5\lib\net462\Polly.dll</HintPath>
+    </Reference>
+    <Reference Include="Polly.Core">
+      <HintPath>$(USERPROFILE)\.nuget\packages\polly.core\8.6.5\lib\net462\Polly.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions">
+      <HintPath>$(USERPROFILE)\.nuget\packages\system.threading.tasks.extensions\4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>$(USERPROFILE)\.nuget\packages\microsoft.bcl.asyncinterfaces\6.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.TimeProvider">
+      <HintPath>$(USERPROFILE)\.nuget\packages\microsoft.bcl.timeprovider\8.0.0\lib\net462\Microsoft.Bcl.TimeProvider.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Annotations">
+      <HintPath>$(USERPROFILE)\.nuget\packages\system.componentmodel.annotations\4.5.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>$(USERPROFILE)\.nuget\packages\system.runtime.compilerservices.unsafe\4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple">
+      <HintPath>$(USERPROFILE)\.nuget\packages\system.valuetuple\4.5.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="Playnite.SDK">
       <HintPath>packages\PlayniteSDK.6.2.0\lib\net462\Playnite.SDK.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
@@ -50,7 +79,9 @@
   </ItemGroup>
   <ItemGroup>
   <Compile Include="CacheManager.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="ProtonDbClient.cs" />
+     <Compile Include="RateLimiterService.cs" />
     <Compile Include="SteamDeckSource.cs" />
     <Compile Include="SteamDeckProtonDb.cs" />
     <Compile Include="SteamDeckProtonDbProvider.cs" />
@@ -62,10 +93,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="extension.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <None Include="icon.png">

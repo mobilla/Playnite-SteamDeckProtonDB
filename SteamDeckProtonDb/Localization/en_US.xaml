@@ -13,18 +13,38 @@
     <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbLink">Enable ProtonDB Link</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbLinkDesc">When enabled, adds a link to the ProtonDB game page in game details.</sys:String>
     
+    <sys:String x:Key="LOC_SteamDeckProtonDb_TagsHeader">Tags</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_EnableTags">Enable Tags</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_TagsDesc">When enabled, adds tags for compatibility status (e.g., steamdeck:verified, protondb:platinum).</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_FeaturesHeader">Features</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableFeatures">Enable Features</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_FeaturesDesc">When enabled, adds features for compatibility status (e.g., Verified, Playable, Platinum).</sys:String>
+        <!-- ProtonDB Section Combined Description -->
+        <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbSectionDesc">Adds ProtonDB tier categories and optional link to ProtonDB page.</sys:String>
     
     <!-- Cache Settings -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_CacheSettings">Cache Settings</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_CacheTtl">Cache TTL (minutes):</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_CacheTtlDesc">How long to cache metadata before fetching fresh data from APIs. Default: 1440 minutes (24 hours).</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_UseFileCacheLabel">Use persistent file cache (recommended)</sys:String>
     
     <!-- ProtonDB API Configuration -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_ApiSettings">ProtonDB API Configuration</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrl">ProtonDB API URL:</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrlDesc">The API endpoint for fetching ProtonDB data. Use {0} as placeholder for AppId.</sys:String>
+
+    <!-- Rate Limiting -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_RateLimiting">Rate Limiting</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbRateLimitLabel">ProtonDB Rate Limit (ms):</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbRateLimitDesc">Minimum milliseconds between ProtonDB API requests. Default: 1000ms (~60 req/min).</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamStoreRateLimitLabel">Steam Store Rate Limit (ms):</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamStoreRateLimitDesc">Minimum milliseconds between Steam Store API requests. Default: 600ms (~100 req/min). Minimum: 100ms.</sys:String>
+
+    <!-- Debug / Progress -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_DebugHeader">Debug</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_DebugProgressDelay">Progress Delay (ms):</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_DebugProgressDelayDesc">Optional artificial delay applied per game while running the menu action. Useful to observe progress updates; leave 0 to disable.</sys:String>
     
     <!-- Category and Tag Names -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeck">Steam Deck</sys:String>
@@ -46,4 +66,8 @@
     <!-- Error Messages -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_Error_InvalidApiUrl">Invalid ProtonDB API URL format.</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_Error_InvalidCacheTtl">Cache TTL must be a positive number.</sys:String>
+    
+    <!-- Menu Items -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_Description">Add Steam Deck/ProtonDB tags and link</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_Section">@Steam Deck ProtonDB</sys:String>
 </ResourceDictionary>

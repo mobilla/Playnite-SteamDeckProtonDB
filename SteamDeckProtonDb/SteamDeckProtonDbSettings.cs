@@ -2,6 +2,7 @@
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace SteamDeckProtonDb
 {
@@ -13,9 +14,16 @@ namespace SteamDeckProtonDb
         private bool enableProtonDbCategories = true;
         private bool enableProtonDbLink = true;
         private bool enableTags = true;
+        private bool enableFeatures = false;
         private int cacheTtlMinutes = 1440; // 24 hours default
         private string protonDbApiUrl = "https://www.protondb.com/api/v1/reports/summaries/{0}.json";
         private bool useFileCache = true;
+        private int protonDbRateLimitMs = 1000; // Default: ~60 req/min
+        private int steamStoreRateLimitMs = 600; // Default: ~100 req/min
+        private int debugProgressDelayMs = 0; // Optional artificial delay per item for debugging progress UI
+        public int ProtonDbRateLimitMs { get => protonDbRateLimitMs; set => SetValue(ref protonDbRateLimitMs, value); }
+        public int SteamStoreRateLimitMs { get => steamStoreRateLimitMs; set => SetValue(ref steamStoreRateLimitMs, value); }
+        public int DebugProgressDelayMs { get => debugProgressDelayMs; set => SetValue(ref debugProgressDelayMs, value); }
 
         // Parameterless constructor required for Playnite deserialization
         public SteamDeckProtonDbSettings()
@@ -30,13 +38,7 @@ namespace SteamDeckProtonDb
                 var saved = plugin?.LoadPluginSettings<SteamDeckProtonDbSettings>();
                 if (saved != null)
                 {
-                    EnableSteamDeckCategories = saved.EnableSteamDeckCategories;
-                    EnableProtonDbCategories = saved.EnableProtonDbCategories;
-                    EnableProtonDbLink = saved.EnableProtonDbLink;
-                    EnableTags = saved.EnableTags;
-                    CacheTtlMinutes = saved.CacheTtlMinutes;
-                    ProtonDbApiUrl = saved.ProtonDbApiUrl;
-                    UseFileCache = saved.UseFileCache;
+                    LoadFrom(saved);
                 }
             }
             catch (Exception ex)
@@ -49,6 +51,7 @@ namespace SteamDeckProtonDb
         public bool EnableProtonDbCategories { get => enableProtonDbCategories; set => SetValue(ref enableProtonDbCategories, value); }
         public bool EnableProtonDbLink { get => enableProtonDbLink; set => SetValue(ref enableProtonDbLink, value); }
         public bool EnableTags { get => enableTags; set => SetValue(ref enableTags, value); }
+        public bool EnableFeatures { get => enableFeatures; set => SetValue(ref enableFeatures, value); }
         public int CacheTtlMinutes { get => cacheTtlMinutes; set => SetValue(ref cacheTtlMinutes, value); }
         public string ProtonDbApiUrl { get => protonDbApiUrl; set => SetValue(ref protonDbApiUrl, value); }
         public bool UseFileCache { get => useFileCache; set => SetValue(ref useFileCache, value); }
@@ -64,14 +67,23 @@ namespace SteamDeckProtonDb
         {
             if (editingClone != null)
             {
-                EnableSteamDeckCategories = editingClone.EnableSteamDeckCategories;
-                EnableProtonDbCategories = editingClone.EnableProtonDbCategories;
-                EnableProtonDbLink = editingClone.EnableProtonDbLink;
-                EnableTags = editingClone.EnableTags;
-                CacheTtlMinutes = editingClone.CacheTtlMinutes;
-                ProtonDbApiUrl = editingClone.ProtonDbApiUrl;
-                UseFileCache = editingClone.UseFileCache;
+                LoadFrom(editingClone);
             }
+        }
+
+        private void LoadFrom(SteamDeckProtonDbSettings source)
+        {
+            EnableSteamDeckCategories = source.EnableSteamDeckCategories;
+            EnableProtonDbCategories = source.EnableProtonDbCategories;
+            EnableProtonDbLink = source.EnableProtonDbLink;
+            EnableTags = source.EnableTags;
+            EnableFeatures = source.EnableFeatures;
+            CacheTtlMinutes = source.CacheTtlMinutes;
+            ProtonDbApiUrl = source.ProtonDbApiUrl;
+            UseFileCache = source.UseFileCache;
+            ProtonDbRateLimitMs = source.ProtonDbRateLimitMs;
+            SteamStoreRateLimitMs = source.SteamStoreRateLimitMs;
+            DebugProgressDelayMs = source.DebugProgressDelayMs;
         }
 
         public void EndEdit()
@@ -90,6 +102,9 @@ namespace SteamDeckProtonDb
         {
             errors = new List<string>();
             if (CacheTtlMinutes < 0) errors.Add("Cache TTL must be non-negative.");
+            if (ProtonDbRateLimitMs < 100) errors.Add("ProtonDB rate limit must be at least 100ms.");
+            if (SteamStoreRateLimitMs < 100) errors.Add("Steam Store rate limit must be at least 100ms.");
+            if (DebugProgressDelayMs < 0) errors.Add("Debug progress delay must be non-negative.");
             return errors.Count == 0;
         }
     }

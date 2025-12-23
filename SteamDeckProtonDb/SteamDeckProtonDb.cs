@@ -46,20 +46,22 @@ namespace SteamDeckProtonDb
 
         public override UserControl GetSettingsView(bool firstRunSettings)
         {
-                // Ensure the view has the plugin settings as DataContext so bindings work
-                var view = new SteamDeckProtonDbSettingsView();
-                view.DataContext = settings;
-                return view;
+            return new SteamDeckProtonDbSettingsView();
         }
 
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
         {
+            var localization = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_Description") 
+                            ?? "Add Steam Deck/ProtonDB tags and link";
+            var section = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_Section") 
+                       ?? "@Steam Deck ProtonDB";
+            
             return new List<MainMenuItem>
             {
                 new MainMenuItem
                 {
-                    Description = "Add Steam Deck/ProtonDB tags and link",
-                    MenuSection = "@Steam Deck ProtonDB",
+                    Description = localization,
+                    MenuSection = section,
                     Action = _ => AddTagsAndLinksToGames(PlayniteApi?.MainView?.SelectedGames)
                 }
             };
@@ -68,8 +70,9 @@ namespace SteamDeckProtonDb
         private MetadataFetcher BuildFetcher()
         {
             var currentSettings = settings ?? new SteamDeckProtonDbSettings(this);
-            var protonClient = new ProtonDbClient(apiUrlFormat: currentSettings.ProtonDbApiUrl);
-            var deckSource = new LocalSteamDeckSource();
+            var rateLimiter = new RateLimiterService(currentSettings.ProtonDbRateLimitMs, currentSettings.SteamStoreRateLimitMs);
+            var protonClient = new ProtonDbClient(apiUrlFormat: currentSettings.ProtonDbApiUrl, rateLimiterService: rateLimiter);
+            var deckSource = new LocalSteamDeckSource(rateLimiterService: rateLimiter);
             ICacheManager cacheManager;
             if (currentSettings.UseFileCache)
             {
