@@ -99,10 +99,9 @@ namespace SteamDeckProtonDb
 
         private void WireUpEventHandlers(UIElement root)
         {
-            // Find the button by searching the visual tree
+            // Find the button by name in the visual tree (should work within TabControl)
             var button = FindVisualChild<Button>(root, b => 
-                (b as FrameworkElement)?.Name == "OpenCacheDirectoryButton" || 
-                b.Content?.ToString() == "Open Cache Directory");
+                (b as FrameworkElement)?.Name == "OpenCacheDirectoryButton");
             if (button != null)
             {
                 button.Click += OpenCacheDirectory_Click;

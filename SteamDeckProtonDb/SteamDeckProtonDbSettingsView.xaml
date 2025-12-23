@@ -4,77 +4,106 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="200" d:DesignWidth="400">
+             d:DesignHeight="400" d:DesignWidth="600">
     <Grid Margin="12">
-        <StackPanel>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamDeckMetadata}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
-            <CheckBox IsChecked="{Binding EnableSteamDeckCategories}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableSteamDeckCategories}"/>
-            </CheckBox>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamDeckCategoriesDesc}" FontSize="11" Foreground="Gray"/>
-            
-            <!-- ProtonDB Settings -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbMetadata}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <CheckBox IsChecked="{Binding EnableProtonDbCategories}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableProtonDbCategories}"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding EnableProtonDbLink}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableProtonDbLink}"/>
-            </CheckBox>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbSectionDesc}" FontSize="11" Foreground="Gray"/>
-            
-            <!-- Tags Settings -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_TagsHeader}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <CheckBox IsChecked="{Binding EnableTags}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableTags}"/>
-            </CheckBox>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_TagsDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,12"/>
-            
-            <!-- Features Settings -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_FeaturesHeader}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <CheckBox IsChecked="{Binding EnableFeatures}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableFeatures}"/>
-            </CheckBox>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_FeaturesDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,12"/>
-            
-            <!-- Cache Settings -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheSettings}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <CheckBox IsChecked="{Binding UseFileCache}" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_UseFileCacheLabel}"/>
-            </CheckBox>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheTtl}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Text="{Binding CacheTtlMinutes}" Width="100"/>
-            </StackPanel>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheTtlDesc}" FontSize="11" Foreground="Gray"/>
-            <Button x:Name="OpenCacheDirectoryButton" Content="Open Cache Directory" Margin="0,8,0,8" HorizontalAlignment="Left" Padding="10,5"/>
+        <TabControl>
+            <!-- Metadata Tab -->
+            <TabItem Header="Metadata">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12,12,12,12">
+                        <!-- Steam Deck Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamDeckMetadata}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding EnableSteamDeckCategories}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableSteamDeckCategories}"/>
+                        </CheckBox>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamDeckCategoriesDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
                         
-            <!-- Rate Limiting Settings -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_RateLimiting}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbRateLimitLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Text="{Binding ProtonDbRateLimitMs}" Width="100"/>
-            </StackPanel>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbRateLimitDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamStoreRateLimitLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Text="{Binding SteamStoreRateLimitMs}" Width="100"/>
-            </StackPanel>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamStoreRateLimitDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,12"/>
+                        <!-- ProtonDB Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbMetadata}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding EnableProtonDbCategories}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableProtonDbCategories}"/>
+                        </CheckBox>
+                        <CheckBox IsChecked="{Binding EnableProtonDbLink}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableProtonDbLink}"/>
+                        </CheckBox>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbSectionDesc}" FontSize="11" Foreground="Gray"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-            <!-- Debug / Progress -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugHeader}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugProgressDelay}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Text="{Binding DebugProgressDelayMs}" Width="100"/>
-            </StackPanel>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugProgressDelayDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,12"/>
-            
-            <!-- ProtonDB API URL -->
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiSettings}" FontWeight="Bold" FontSize="14" Margin="12,16,0,8"/>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiUrl}" Margin="0,0,0,5"/>
-            <TextBox Text="{Binding ProtonDbApiUrl}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiUrlDesc}" FontSize="11" Foreground="Gray"/>
-        </StackPanel>
+            <!-- Tags & Features Tab -->
+            <TabItem Header="Tags &amp; Features">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12,12,12,12">
+                        <!-- Tags Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_TagsHeader}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding EnableTags}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableTags}"/>
+                        </CheckBox>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_TagsDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
+                        
+                        <!-- Features Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_FeaturesHeader}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding EnableFeatures}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableFeatures}"/>
+                        </CheckBox>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_FeaturesDesc}" FontSize="11" Foreground="Gray"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Cache Tab -->
+            <TabItem Header="Cache">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12,12,12,12">
+                        <!-- Cache Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheSettings}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding UseFileCache}" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_UseFileCacheLabel}"/>
+                        </CheckBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheTtl}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox Text="{Binding CacheTtlMinutes}" Width="100"/>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_CacheTtlDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
+                        <Button x:Name="OpenCacheDirectoryButton" Content="Open Cache Directory" Margin="0,0,0,0" HorizontalAlignment="Left" Padding="10,5"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Advanced Tab -->
+            <TabItem Header="Advanced">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12,12,12,12">
+                        <!-- Rate Limiting Settings -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_RateLimiting}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbRateLimitLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox Text="{Binding ProtonDbRateLimitMs}" Width="100"/>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbRateLimitDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamStoreRateLimitLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox Text="{Binding SteamStoreRateLimitMs}" Width="100"/>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_SteamStoreRateLimitDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
+
+                        <!-- Debug / Progress -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugHeader}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugProgressDelay}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox Text="{Binding DebugProgressDelayMs}" Width="100"/>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_DebugProgressDelayDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
+                        
+                        <!-- ProtonDB API URL -->
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiSettings}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiUrl}" Margin="0,0,0,5"/>
+                        <TextBox Text="{Binding ProtonDbApiUrl}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ApiUrlDesc}" FontSize="11" Foreground="Gray"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>
