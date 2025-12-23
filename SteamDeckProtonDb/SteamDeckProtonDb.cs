@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 
 namespace SteamDeckProtonDb
 {
@@ -98,7 +99,7 @@ namespace SteamDeckProtonDb
 
             var fetcher = BuildFetcher();
             var processor = new MetadataProcessor();
-            var updater = new MetadataUpdater(this);
+                var updater = new MetadataUpdater(this, settings);
 
             var progressOptions = new GlobalProgressOptions("Adding Steam Deck/ProtonDB tags and link")
             {
@@ -109,7 +110,13 @@ namespace SteamDeckProtonDb
             PlayniteApi.Dialogs.ActivateGlobalProgress(async progress =>
             {
                 progress.ProgressMaxValue = targetGames.Count;
+                progress.CurrentProgressValue = 0;
+                
+                // Yield to UI thread to ensure progress dialog is visible
+                await Task.Delay(100).ConfigureAwait(false);
+                
                 int processed = 0;
+                var debugDelayMs = Math.Max(0, settings?.DebugProgressDelayMs ?? 0);
 
                 foreach (var game in targetGames)
                 {
@@ -118,25 +125,45 @@ namespace SteamDeckProtonDb
                         break;
                     }
 
-                    progress.Text = $"Processing {game.Name}";
-                    progress.CurrentProgressValue = processed++;
-
                     if (!int.TryParse(game.GameId, out var appId) || appId <= 0)
                     {
+                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Skipping {game.Name} (no App ID)";
+                        progress.CurrentProgressValue = ++processed;
                         continue;
                     }
 
                     try
                     {
+                        // Check if data is already cached
+                        bool hasProtonCached = fetcher.TryGetCachedProtonDbSummary(appId, out _);
+                        bool hasDeckCached = fetcher.TryGetCachedDeckCompatibility(appId, out _);
+                        bool isFullyCached = hasProtonCached && hasDeckCached;
+
+                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Fetching {game.Name}..." + 
+                                      (isFullyCached ? " (cached)" : " (from API)");
+                        logger.Debug($"Progress: {processed}/{targetGames.Count} - {game.Name} (delay: {debugDelayMs}ms)");
+
+                        // Optional artificial delay to help debug progress pacing
+                        if (debugDelayMs > 0)
+                        {
+                            try { await Task.Delay(debugDelayMs, progress.CancelToken).ConfigureAwait(false); } catch (TaskCanceledException) { }
+                        }
+                        
                         var fetchResult = await fetcher.GetBothAsync(appId).ConfigureAwait(false);
                         var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
 
+                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Updating {game.Name}...";
                         updater.Apply(game, mapping);
                         PlayniteApi.Database.Games.Update(game);
                     }
                     catch (Exception ex)
                     {
                         logger.Debug($"Failed to update game '{game.Name}': {ex.Message}");
+                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Failed: {game.Name}";
+                    }
+                    finally
+                    {
+                        progress.CurrentProgressValue = ++processed;
                     }
                 }
             }, progressOptions);

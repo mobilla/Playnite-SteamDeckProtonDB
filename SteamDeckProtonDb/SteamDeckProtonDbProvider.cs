@@ -20,6 +20,7 @@ namespace SteamDeckProtonDb
         public override List<MetadataField> AvailableFields => new List<MetadataField> 
         { 
             MetadataField.Tags,
+            MetadataField.Features,
             MetadataField.Links
         };
 
@@ -44,7 +45,7 @@ namespace SteamDeckProtonDb
                 }
                 fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes);
             processor = new MetadataProcessor();
-            updater = new MetadataUpdater(plugin);
+              updater = new MetadataUpdater(plugin, settings);
         }
 
         // Override additional methods based on supported metadata fields.
@@ -142,6 +143,50 @@ namespace SteamDeckProtonDb
             catch (Exception ex)
             {
                 Playnite.SDK.LogManager.GetLogger().Debug("GetTags error: " + ex.Message);
+            }
+
+            return new List<MetadataProperty>();
+        }
+
+        public override IEnumerable<MetadataProperty> GetFeatures(GetMetadataFieldArgs args)
+        {
+            var gameMeta = options.GameData;
+            int appId = 0;
+            if (gameMeta != null && !string.IsNullOrEmpty(gameMeta.GameId))
+            {
+                int.TryParse(gameMeta.GameId, out appId);
+            }
+
+            Playnite.SDK.LogManager.GetLogger().Debug($"GetFeatures called for appId: {appId}");
+            if (appId <= 0) return new List<MetadataProperty>();
+
+            try
+            {
+                // Try to get cached values first
+                fetcher.TryGetCachedProtonDbSummary(appId, out var cachedProton);
+                fetcher.TryGetCachedDeckCompatibility(appId, out var cachedDeck);
+
+                // If no cache, fetch fresh data
+                if (cachedProton == null || cachedDeck == SteamDeckCompatibility.Unknown)
+                {
+                    var fetchTask = fetcher.GetBothAsync(appId);
+                    fetchTask.Wait(TimeSpan.FromSeconds(10));
+                    if (fetchTask.IsCompleted)
+                    {
+                        cachedDeck = fetchTask.Result.Deck;
+                        cachedProton = fetchTask.Result.Proton;
+                    }
+                }
+
+                Playnite.SDK.LogManager.GetLogger().Debug($"Fetched data - Deck: {cachedDeck}, Proton: {cachedProton?.Tier}");
+                var mapping = processor.Map(appId, cachedDeck, cachedProton);
+                Playnite.SDK.LogManager.GetLogger().Debug($"Mapped features: {string.Join(", ", mapping.Features)}");
+                
+                return mapping.Features.Select(f => new MetadataNameProperty(f)).ToList();
+            }
+            catch (Exception ex)
+            {
+                Playnite.SDK.LogManager.GetLogger().Debug("GetFeatures error: " + ex.Message);
             }
 
             return new List<MetadataProperty>();
@@ -251,20 +296,38 @@ namespace SteamDeckProtonDb
             switch (deck)
             {
                 case SteamDeckCompatibility.Verified:
-                    if (!result.Categories.Contains("Steam Deck")) result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Verified")) result.Categories.Add("Steam Deck - Verified");
-                    if (!result.Tags.Contains("steamdeck:verified")) result.Tags.Add("steamdeck:verified");
+                    if (!result.Categories.Contains("Steam Deck"))
+                        result.Categories.Add("Steam Deck");
+                    if (!result.Categories.Contains("Steam Deck - Verified"))
+                        result.Categories.Add("Steam Deck - Verified");
+                    if (!result.Tags.Contains("steamdeck:verified"))
+                        result.Tags.Add("steamdeck:verified");
+                    if (!result.Features.Contains("Verified"))
+                        result.Features.Add("Steamdeck:Verified");
                     break;
+
                 case SteamDeckCompatibility.Playable:
-                    if (!result.Categories.Contains("Steam Deck")) result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Playable")) result.Categories.Add("Steam Deck - Playable");
-                    if (!result.Tags.Contains("steamdeck:playable")) result.Tags.Add("steamdeck:playable");
+                    if (!result.Categories.Contains("Steam Deck"))
+                        result.Categories.Add("Steam Deck");
+                    if (!result.Categories.Contains("Steam Deck - Playable"))
+                        result.Categories.Add("Steam Deck - Playable");
+                    if (!result.Tags.Contains("steamdeck:playable"))
+                        result.Tags.Add("steamdeck:playable");
+                    if (!result.Features.Contains("Playable"))
+                        result.Features.Add("Steamdeck:Playable");
                     break;
+
                 case SteamDeckCompatibility.Unsupported:
-                    if (!result.Categories.Contains("Steam Deck")) result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Unsupported")) result.Categories.Add("Steam Deck - Unsupported");
-                    if (!result.Tags.Contains("steamdeck:unsupported")) result.Tags.Add("steamdeck:unsupported");
+                    if (!result.Categories.Contains("Steam Deck"))
+                        result.Categories.Add("Steam Deck");
+                    if (!result.Categories.Contains("Steam Deck - Unsupported"))
+                        result.Categories.Add("Steam Deck - Unsupported");
+                    if (!result.Tags.Contains("steamdeck:unsupported"))
+                        result.Tags.Add("steamdeck:unsupported");
+                    if (!result.Features.Contains("Unsupported"))
+                        result.Features.Add("Steamdeck:Unsupported");
                     break;
+
                 case SteamDeckCompatibility.Unknown:
                 default:
                     break;
@@ -275,11 +338,22 @@ namespace SteamDeckProtonDb
             if (tier != ProtonDbTier.Unknown)
             {
                 var tierName = tier.ToString();
-                if (!result.Categories.Contains("ProtonDB")) result.Categories.Add("ProtonDB");
+                
+                if (!result.Categories.Contains("ProtonDB"))
+                    result.Categories.Add("ProtonDB");
+                
                 var tierCategory = $"ProtonDB - {tierName}";
-                if (!result.Categories.Contains(tierCategory)) result.Categories.Add(tierCategory);
+                if (!result.Categories.Contains(tierCategory))
+                    result.Categories.Add(tierCategory);
+                
                 var tierTag = $"protondb:{tierName.ToLowerInvariant()}";
-                if (!result.Tags.Contains(tierTag)) result.Tags.Add(tierTag);
+                if (!result.Tags.Contains(tierTag))
+                    result.Tags.Add(tierTag);
+                
+                var tierFeature = $"Protondb:{tierName}";
+                if (!result.Features.Contains(tierFeature))
+                    result.Features.Add(tierFeature);
+                
                 result.ProtonDbUrl = proton?.Url;
             }
 
@@ -290,10 +364,13 @@ namespace SteamDeckProtonDb
     public class MetadataUpdater
     {
         private readonly SteamDeckProtonDb plugin;
+        private readonly SteamDeckProtonDbSettings settings;
+        private static readonly Playnite.SDK.ILogger logger = Playnite.SDK.LogManager.GetLogger();
 
-        public MetadataUpdater(SteamDeckProtonDb plugin)
+        public MetadataUpdater(SteamDeckProtonDb plugin, SteamDeckProtonDbSettings settings = null)
         {
             this.plugin = plugin;
+                this.settings = settings;
         }
 
         public void Apply(Game game, MappingResult result, bool dryRun = false)
@@ -302,6 +379,9 @@ namespace SteamDeckProtonDb
             {
                 return;
             }
+
+            logger.Debug($"Apply called for game '{game.Name}' - Tags enabled: {settings?.EnableTags}, Features enabled: {settings?.EnableFeatures}");
+            logger.Debug($"MappingResult has {result.Tags?.Count ?? 0} tags, {result.Features?.Count ?? 0} features, {result.Categories?.Count ?? 0} categories");
 
             if (dryRun)
             {
@@ -321,6 +401,22 @@ namespace SteamDeckProtonDb
                 var dbCategories = plugin.PlayniteApi.Database.Categories;
                 foreach (var catName in result.Categories)
                 {
+                    // Check if this category should be added based on settings
+                    var isDeckCategory = catName == "Steam Deck" || catName.StartsWith("Steam Deck -");
+                    var isProtonCategory = catName == "ProtonDB" || catName.StartsWith("ProtonDB -");
+
+                    if (isDeckCategory && settings?.EnableSteamDeckCategories != true)
+                    {
+                        logger.Debug($"Skipping Steam Deck category '{catName}' - not enabled");
+                        continue;
+                    }
+
+                    if (isProtonCategory && settings?.EnableProtonDbCategories != true)
+                    {
+                        logger.Debug($"Skipping ProtonDB category '{catName}' - not enabled");
+                        continue;
+                    }
+
                     // Find or create the category.
                     var existingCat = dbCategories.FirstOrDefault(c => c.Name == catName);
                     Category cat = existingCat;
@@ -341,22 +437,67 @@ namespace SteamDeckProtonDb
             // Add tags to the game.
             if (result.Tags != null && result.Tags.Count > 0)
             {
-                var dbTags = plugin.PlayniteApi.Database.Tags;
-                foreach (var tagName in result.Tags)
+                // Check if tags should be applied based on settings
+                if (settings?.EnableTags != true)
                 {
-                    // Find or create the tag.
-                    var existingTag = dbTags.FirstOrDefault(t => t.Name == tagName);
-                    Tag tag = existingTag;
-                    if (tag == null)
+                    logger.Debug($"Skipping {result.Tags.Count} tags - not enabled in settings");
+                }
+                else
+                {
+                    logger.Debug($"Adding tags - game.Tags is null: {game.TagIds == null}");
+                    var dbTags = plugin.PlayniteApi.Database.Tags;
+                    foreach (var tagName in result.Tags)
                     {
-                        tag = new Tag { Name = tagName };
-                        dbTags.Add(tag);
-                    }
+                        // Find or create the tag.
+                        var existingTag = dbTags.FirstOrDefault(t => t.Name == tagName);
+                        Tag tag = existingTag;
+                        if (tag == null)
+                        {
+                            tag = new Tag { Name = tagName };
+                            dbTags.Add(tag);
+                        }
 
-                    // Add to game if not already present.
-                    if (game.Tags != null && !game.Tags.Any(t => t.Id == tag.Id))
+                        // Add to game if not already present.
+                        if (game.TagIds == null || !game.TagIds.Contains(tag.Id))
+                        {
+                            if (game.TagIds == null) game.TagIds = new List<Guid>();
+                            game.TagIds.Add(tag.Id);
+                            logger.Debug($"Added tag '{tagName}' to game");
+                        }
+                    }
+                }
+            }
+
+            // Add features to the game.
+            if (result.Features != null && result.Features.Count > 0)
+            {
+                // Check if features should be applied based on settings
+                if (settings?.EnableFeatures != true)
+                {
+                    logger.Debug($"Skipping {result.Features.Count} features - not enabled in settings");
+                }
+                else
+                {
+                    logger.Debug($"Adding features - game.FeatureIds is null: {game.FeatureIds == null}");
+                    var dbFeatures = plugin.PlayniteApi.Database.Features;
+                    foreach (var featureName in result.Features)
                     {
-                        game.Tags.Add(tag);
+                        // Find or create the feature.
+                        var existingFeature = dbFeatures.FirstOrDefault(f => f.Name == featureName);
+                        GameFeature feature = existingFeature;
+                        if (feature == null)
+                        {
+                            feature = new GameFeature { Name = featureName };
+                            dbFeatures.Add(feature);
+                        }
+
+                        // Add to game if not already present.
+                        if (game.FeatureIds == null || !game.FeatureIds.Contains(feature.Id))
+                        {
+                            if (game.FeatureIds == null) game.FeatureIds = new List<Guid>();
+                            game.FeatureIds.Add(feature.Id);
+                            logger.Debug($"Added feature '{featureName}' to game");
+                        }
                     }
                 }
             }
@@ -364,10 +505,19 @@ namespace SteamDeckProtonDb
             // Add link to ProtonDB if available.
             if (!string.IsNullOrEmpty(result.ProtonDbUrl))
             {
-                // Avoid duplicate ProtonDB links.
-                if (game.Links != null && !game.Links.Any(l => l.Name == "ProtonDB" && l.Url == result.ProtonDbUrl))
+                // Check if ProtonDB link should be added based on settings
+                if (settings?.EnableProtonDbLink != true)
                 {
+                    logger.Debug("Skipping ProtonDB link - not enabled in settings");
+                    return;
+                }
+
+                // Avoid duplicate ProtonDB links.
+                if (game.Links == null || !game.Links.Any(l => l.Name == "ProtonDB" && l.Url == result.ProtonDbUrl))
+                {
+                    if (game.Links == null) game.Links = new System.Collections.ObjectModel.ObservableCollection<Link>();
                     game.Links.Add(new Link("ProtonDB", result.ProtonDbUrl));
+                    logger.Debug($"Added ProtonDB link to game");
                 }
             }
         }
@@ -402,6 +552,7 @@ namespace SteamDeckProtonDb
     {
         public List<string> Categories { get; set; } = new List<string>();
         public List<string> Tags { get; set; } = new List<string>();
+        public List<string> Features { get; set; } = new List<string>();
         public string ProtonDbUrl { get; set; }
     }
 }

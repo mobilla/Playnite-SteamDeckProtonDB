@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -86,10 +87,10 @@
     <Compile Include="SteamDeckProtonDb.cs" />
     <Compile Include="SteamDeckProtonDbProvider.cs" />
     <Compile Include="SteamDeckProtonDbSettings.cs" />
+    <!-- Removed manual .g.cs to avoid conflicts; runtime loader handles XAML -->
     <Compile Include="SteamDeckProtonDbSettingsView.xaml.cs">
       <DependentUpon>SteamDeckProtonDbSettingsView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="SteamDeckProtonDbSettingsView.g.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -104,14 +105,14 @@
     <None Include="icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="SteamDeckProtonDbSettingsView.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="Localization\*.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="SteamDeckProtonDbSettingsView.xaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Page Include="App.xaml">
@@ -125,4 +126,5 @@
     </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.WinFX.targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.WinFX.targets')" />
 </Project>
