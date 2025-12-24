@@ -37,7 +37,8 @@ namespace SteamDeckProtonDb
         {
             if (appId <= 0) return SteamDeckCompatibility.Unknown;
 
-            var url = $"https://store.steampowered.com/api/appdetails?appids={appId}&cc=us&l=en";
+            // Use the more reliable ajaxgetdeckappcompatibilityreport endpoint
+            var url = $"https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID={appId}&l=en&cc=US";
             logger.Debug($"Steam Deck API call for appId {appId}: {url}");
             try
             {
@@ -91,39 +92,49 @@ namespace SteamDeckProtonDb
             if (string.IsNullOrWhiteSpace(body))
                 return SteamDeckCompatibility.Unknown;
 
-            var lower = body.ToLowerInvariant();
-
-            // Look for explicit steam deck compatibility tokens.
-            if (Regex.IsMatch(lower, "steam[_ ]?deck.*verified") || lower.Contains("steam deck verified"))
+            try
             {
-                logger.Debug($"Steam Deck compatibility for appId {appId}: Verified");
-                return SteamDeckCompatibility.Verified;
-            }
+                // Parse the JSON response from ajaxgetdeckappcompatibilityreport
+                // Expected structure: { "success": 1, "results": { "resolved_category": 3 } }
+                // resolved_category values: 3 = Verified, 2 = Playable, 1 = Unsupported, 0 = Unknown
+                var match = Regex.Match(body, "\"resolved_category\"\\s*:\\s*(\\d+)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int category))
+                {
+                    switch (category)
+                    {
+                        case 3:
+                            logger.Debug($"Steam Deck compatibility for appId {appId}: Verified (category=3)");
+                            return SteamDeckCompatibility.Verified;
+                        case 2:
+                            logger.Debug($"Steam Deck compatibility for appId {appId}: Playable (category=2)");
+                            return SteamDeckCompatibility.Playable;
+                        case 1:
+                            logger.Debug($"Steam Deck compatibility for appId {appId}: Unsupported (category=1)");
+                            return SteamDeckCompatibility.Unsupported;
+                        case 0:
+                            logger.Debug($"Steam Deck compatibility for appId {appId}: Unknown (category=0)");
+                            return SteamDeckCompatibility.Unknown;
+                        default:
+                            logger.Debug($"Steam Deck compatibility for appId {appId}: Unknown category value {category}");
+                            return SteamDeckCompatibility.Unknown;
+                    }
+                }
 
-            if (Regex.IsMatch(lower, "steam[_ ]?deck.*playable") || lower.Contains("playable"))
+                // Check if the response indicates success=1 but no results (untested game)
+                if (Regex.IsMatch(body, "\"success\"\\s*:\\s*1") && !body.Contains("\"results\""))
+                {
+                    logger.Debug($"Steam Deck compatibility for appId {appId}: Unknown (no results in response)");
+                    return SteamDeckCompatibility.Unknown;
+                }
+
+                logger.Debug($"Steam Deck compatibility for appId {appId}: Unknown (unable to parse response)");
+                return SteamDeckCompatibility.Unknown;
+            }
+            catch (Exception ex)
             {
-                logger.Debug($"Steam Deck compatibility for appId {appId}: Playable");
-                return SteamDeckCompatibility.Playable;
+                logger.Debug($"ParseSteamDeckCompatibility error for appId {appId}: {ex.Message}");
+                return SteamDeckCompatibility.Unknown;
             }
-
-            if (lower.Contains("unsupported") || lower.Contains("not supported") || lower.Contains("not compatible"))
-            {
-                logger.Debug($"Steam Deck compatibility for appId {appId}: Unsupported");
-                return SteamDeckCompatibility.Unsupported;
-            }
-
-            // Some store payloads may include a `steam_deck_compatibility` field or similar; try to extract it.
-            var m = Regex.Match(body, "\"steam_deck_compatibility\"\\s*:\\s*\"(?<val>[^\"]+)\"", RegexOptions.IgnoreCase);
-            if (m.Success)
-            {
-                var v = m.Groups["val"].Value.ToLowerInvariant();
-                if (v.Contains("verified")) return SteamDeckCompatibility.Verified;
-                if (v.Contains("playable")) return SteamDeckCompatibility.Playable;
-                if (v.Contains("unsupported") || v.Contains("borked")) return SteamDeckCompatibility.Unsupported;
-            }
-
-            logger.Debug($"Steam Deck compatibility for appId {appId}: Unknown");
-            return SteamDeckCompatibility.Unknown;
         }
     }
 

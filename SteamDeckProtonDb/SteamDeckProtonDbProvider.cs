@@ -56,6 +56,42 @@ namespace SteamDeckProtonDb
             return null;
         }
 
+        private FetchResult FetchData(int appId)
+        {
+            var logger = Playnite.SDK.LogManager.GetLogger();
+            
+            // Try to get cached values first
+            fetcher.TryGetCachedProtonDbSummary(appId, out var cachedProton);
+            fetcher.TryGetCachedDeckCompatibility(appId, out var cachedDeck);
+
+            // If no cache, fetch fresh data synchronously
+            // Playnite will show its own progress dialog during metadata downloads
+            if (cachedProton == null || cachedDeck == SteamDeckCompatibility.Unknown)
+            {
+                logger.Debug($"Fetching fresh data for appId: {appId}");
+                try
+                {
+                    var fetchTask = fetcher.GetBothAsync(appId);
+                    fetchTask.Wait(TimeSpan.FromSeconds(15)); // Reasonable timeout
+                    if (fetchTask.IsCompleted)
+                    {
+                        cachedDeck = fetchTask.Result.Deck;
+                        cachedProton = fetchTask.Result.Proton;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Debug($"Fetch failed for appId {appId}: {ex.Message}");
+                }
+            }
+            else
+            {
+                logger.Debug($"Using cached data for appId: {appId}");
+            }
+            
+            return new FetchResult { Deck = cachedDeck, Proton = cachedProton };
+        }
+
         public override IEnumerable<Link> GetLinks(GetMetadataFieldArgs args)
         {
             var gameMeta = options.GameData;
@@ -70,23 +106,8 @@ namespace SteamDeckProtonDb
 
             try
             {
-                // Try to get cached values first
-                fetcher.TryGetCachedProtonDbSummary(appId, out var cachedProton);
-                fetcher.TryGetCachedDeckCompatibility(appId, out var cachedDeck);
-
-                // If no cache, fetch fresh data (this blocks but ensures we have data)
-                if (cachedProton == null || cachedDeck == SteamDeckCompatibility.Unknown)
-                {
-                    var fetchTask = fetcher.GetBothAsync(appId);
-                    fetchTask.Wait(TimeSpan.FromSeconds(10)); // Wait up to 10 seconds for data
-                    if (fetchTask.IsCompleted)
-                    {
-                        cachedDeck = fetchTask.Result.Deck;
-                        cachedProton = fetchTask.Result.Proton;
-                    }
-                }
-
-                var mapping = processor.Map(appId, cachedDeck, cachedProton);
+                var fetchResult = FetchData(appId);
+                var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
                 var links = new List<Link>();
 
                 if (!string.IsNullOrEmpty(mapping.ProtonDbUrl))
@@ -113,36 +134,22 @@ namespace SteamDeckProtonDb
                 int.TryParse(gameMeta.GameId, out appId);
             }
 
-            Playnite.SDK.LogManager.GetLogger().Debug($"GetTags called for appId: {appId}");
+            var logger = Playnite.SDK.LogManager.GetLogger();
+            logger.Debug($"GetTags called for appId: {appId}");
             if (appId <= 0) return new List<MetadataProperty>();
 
             try
             {
-                // Try to get cached values first
-                fetcher.TryGetCachedProtonDbSummary(appId, out var cachedProton);
-                fetcher.TryGetCachedDeckCompatibility(appId, out var cachedDeck);
-
-                // If no cache, fetch fresh data
-                if (cachedProton == null || cachedDeck == SteamDeckCompatibility.Unknown)
-                {
-                    var fetchTask = fetcher.GetBothAsync(appId);
-                    fetchTask.Wait(TimeSpan.FromSeconds(10));
-                    if (fetchTask.IsCompleted)
-                    {
-                        cachedDeck = fetchTask.Result.Deck;
-                        cachedProton = fetchTask.Result.Proton;
-                    }
-                }
-
-                Playnite.SDK.LogManager.GetLogger().Debug($"Fetched data - Deck: {cachedDeck}, Proton: {cachedProton?.Tier}");
-                var mapping = processor.Map(appId, cachedDeck, cachedProton);
-                Playnite.SDK.LogManager.GetLogger().Debug($"Mapped tags: {string.Join(", ", mapping.Tags)}");
+                var fetchResult = FetchData(appId);
+                logger.Debug($"Fetched data - Deck: {fetchResult.Deck}, Proton: {fetchResult.Proton?.Tier}");
+                var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
+                logger.Debug($"Mapped tags: {string.Join(", ", mapping.Tags)}");
                 
                 return mapping.Tags.Select(t => new MetadataNameProperty(t)).ToList();
             }
             catch (Exception ex)
             {
-                Playnite.SDK.LogManager.GetLogger().Debug("GetTags error: " + ex.Message);
+                logger.Debug("GetTags error: " + ex.Message);
             }
 
             return new List<MetadataProperty>();
@@ -157,36 +164,22 @@ namespace SteamDeckProtonDb
                 int.TryParse(gameMeta.GameId, out appId);
             }
 
-            Playnite.SDK.LogManager.GetLogger().Debug($"GetFeatures called for appId: {appId}");
+            var logger = Playnite.SDK.LogManager.GetLogger();
+            logger.Debug($"GetFeatures called for appId: {appId}");
             if (appId <= 0) return new List<MetadataProperty>();
 
             try
             {
-                // Try to get cached values first
-                fetcher.TryGetCachedProtonDbSummary(appId, out var cachedProton);
-                fetcher.TryGetCachedDeckCompatibility(appId, out var cachedDeck);
-
-                // If no cache, fetch fresh data
-                if (cachedProton == null || cachedDeck == SteamDeckCompatibility.Unknown)
-                {
-                    var fetchTask = fetcher.GetBothAsync(appId);
-                    fetchTask.Wait(TimeSpan.FromSeconds(10));
-                    if (fetchTask.IsCompleted)
-                    {
-                        cachedDeck = fetchTask.Result.Deck;
-                        cachedProton = fetchTask.Result.Proton;
-                    }
-                }
-
-                Playnite.SDK.LogManager.GetLogger().Debug($"Fetched data - Deck: {cachedDeck}, Proton: {cachedProton?.Tier}");
-                var mapping = processor.Map(appId, cachedDeck, cachedProton);
-                Playnite.SDK.LogManager.GetLogger().Debug($"Mapped features: {string.Join(", ", mapping.Features)}");
+                var fetchResult = FetchData(appId);
+                logger.Debug($"Fetched data - Deck: {fetchResult.Deck}, Proton: {fetchResult.Proton?.Tier}");
+                var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
+                logger.Debug($"Mapped features: {string.Join(", ", mapping.Features)}");
                 
                 return mapping.Features.Select(f => new MetadataNameProperty(f)).ToList();
             }
             catch (Exception ex)
             {
-                Playnite.SDK.LogManager.GetLogger().Debug("GetFeatures error: " + ex.Message);
+                logger.Debug("GetFeatures error: " + ex.Message);
             }
 
             return new List<MetadataProperty>();

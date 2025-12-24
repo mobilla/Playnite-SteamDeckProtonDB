@@ -10,9 +10,10 @@ namespace SteamDeckProtonDb.Tests
     public class SteamDeckApiParsingTests
     {
         [Test]
-        public async Task VerifiedKeyword_ReturnsVerified()
+        public async Task VerifiedCategory_ReturnsVerified()
         {
-            var body = @"{""12345"":{""success"":true,""data"":{""steam_deck"":""Steam Deck Verified""}}}";
+            // New endpoint format: resolved_category = 3 means Verified
+            var body = @"{""success"":1,""results"":{""resolved_category"":3}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -28,9 +29,10 @@ namespace SteamDeckProtonDb.Tests
         }
 
         [Test]
-        public async Task PlayableKeyword_ReturnsPlayable()
+        public async Task PlayableCategory_ReturnsPlayable()
         {
-            var body = @"{""success"":true,""data"":{""categories"":[{""description"":""Steam Deck Playable""}]}}";
+            // New endpoint format: resolved_category = 2 means Playable
+            var body = @"{""success"":1,""results"":{""resolved_category"":2}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -46,9 +48,10 @@ namespace SteamDeckProtonDb.Tests
         }
 
         [Test]
-        public async Task UnsupportedKeyword_ReturnsUnsupported()
+        public async Task UnsupportedCategory_ReturnsUnsupported()
         {
-            var body = @"{""data"":{""platform_linux"":false,""steam_deck_note"":""Unsupported""}}";
+            // New endpoint format: resolved_category = 1 means Unsupported
+            var body = @"{""success"":1,""results"":{""resolved_category"":1}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -64,9 +67,10 @@ namespace SteamDeckProtonDb.Tests
         }
 
         [Test]
-        public async Task NoSteamDeckKeywords_ReturnsUnknown()
+        public async Task UnknownCategory_ReturnsUnknown()
         {
-            var body = @"{""success"":true,""data"":{""name"":""Some Game"",""type"":""game""}}";
+            // New endpoint format: resolved_category = 0 means Unknown
+            var body = @"{""success"":1,""results"":{""resolved_category"":0}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -77,6 +81,25 @@ namespace SteamDeckProtonDb.Tests
             {
                 var src = new LocalSteamDeckSource(client);
                 var result = await src.GetCompatibilityAsync(11111);
+                Assert.AreEqual(SteamDeckCompatibility.Unknown, result);
+            }
+        }
+
+        [Test]
+        public async Task NoResultsInResponse_ReturnsUnknown()
+        {
+            // When success=1 but no results, means the game hasn't been tested
+            var body = @"{""success"":1}";
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body)
+            };
+
+            using (var handler = new SimpleFakeHandler(response))
+            using (var client = new HttpClient(handler))
+            {
+                var src = new LocalSteamDeckSource(client);
+                var result = await src.GetCompatibilityAsync(22222);
                 Assert.AreEqual(SteamDeckCompatibility.Unknown, result);
             }
         }
@@ -164,9 +187,10 @@ namespace SteamDeckProtonDb.Tests
         }
 
         [Test]
-        public async Task CaseInsensitiveMatching_VerifiedLowercase()
+        public async Task InvalidCategoryValue_ReturnsUnknown()
         {
-            var body = @"{""data"":{""note"":""steam deck verified - works great""}}";
+            // If the resolved_category has an unexpected value, should return Unknown
+            var body = @"{""success"":1,""results"":{""resolved_category"":999}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -177,7 +201,7 @@ namespace SteamDeckProtonDb.Tests
             {
                 var src = new LocalSteamDeckSource(client);
                 var result = await src.GetCompatibilityAsync(12345);
-                Assert.AreEqual(SteamDeckCompatibility.Verified, result);
+                Assert.AreEqual(SteamDeckCompatibility.Unknown, result);
             }
         }
     }

@@ -83,7 +83,8 @@ namespace SteamDeckProtonDb.Tests
         [Test]
         public async Task SteamSource_RetriesOn429_ThenPlayable()
         {
-            var bodyPlayable = "This payload contains playable and other words";
+            // New endpoint format with resolved_category = 2 for Playable
+            var bodyPlayable = @"{""success"":1,""results"":{""resolved_category"":2}}";
 
             var handler = new SequencedHandler(new Func<HttpRequestMessage, HttpResponseMessage>[]
             {

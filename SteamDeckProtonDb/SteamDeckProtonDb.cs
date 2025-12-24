@@ -97,9 +97,11 @@ namespace SteamDeckProtonDb
                 return;
             }
 
+            logger.Info($"Starting bulk update for {targetGames.Count} games");
+
             var fetcher = BuildFetcher();
             var processor = new MetadataProcessor();
-                var updater = new MetadataUpdater(this, settings);
+            var updater = new MetadataUpdater(this, settings);
 
             var progressOptions = new GlobalProgressOptions("Adding Steam Deck/ProtonDB tags and link")
             {
@@ -107,8 +109,10 @@ namespace SteamDeckProtonDb
                 Cancelable = true
             };
 
+            logger.Info("Activating global progress dialog");
             PlayniteApi.Dialogs.ActivateGlobalProgress(async progress =>
             {
+                logger.Info($"Progress dialog activated - processing {targetGames.Count} games");
                 progress.ProgressMaxValue = targetGames.Count;
                 progress.CurrentProgressValue = 0;
                 
@@ -118,54 +122,60 @@ namespace SteamDeckProtonDb
                 int processed = 0;
                 var debugDelayMs = Math.Max(0, settings?.DebugProgressDelayMs ?? 0);
 
-                foreach (var game in targetGames)
+                // Use BufferedUpdate to avoid flooding other plugins with events
+                using (PlayniteApi.Database.BufferedUpdate())
                 {
-                    if (progress.CancelToken.IsCancellationRequested)
+                    foreach (var game in targetGames)
                     {
-                        break;
-                    }
-
-                    if (!int.TryParse(game.GameId, out var appId) || appId <= 0)
-                    {
-                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Skipping {game.Name} (no App ID)";
-                        progress.CurrentProgressValue = ++processed;
-                        continue;
-                    }
-
-                    try
-                    {
-                        // Check if data is already cached
-                        bool hasProtonCached = fetcher.TryGetCachedProtonDbSummary(appId, out _);
-                        bool hasDeckCached = fetcher.TryGetCachedDeckCompatibility(appId, out _);
-                        bool isFullyCached = hasProtonCached && hasDeckCached;
-
-                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Fetching {game.Name}..." + 
-                                      (isFullyCached ? " (cached)" : " (from API)");
-                        logger.Debug($"Progress: {processed}/{targetGames.Count} - {game.Name} (delay: {debugDelayMs}ms)");
-
-                        // Optional artificial delay to help debug progress pacing
-                        if (debugDelayMs > 0)
+                        if (progress.CancelToken.IsCancellationRequested)
                         {
-                            try { await Task.Delay(debugDelayMs, progress.CancelToken).ConfigureAwait(false); } catch (TaskCanceledException) { }
+                            break;
                         }
-                        
-                        var fetchResult = await fetcher.GetBothAsync(appId).ConfigureAwait(false);
-                        var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
 
-                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Updating {game.Name}...";
-                        updater.Apply(game, mapping);
-                        PlayniteApi.Database.Games.Update(game);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Debug($"Failed to update game '{game.Name}': {ex.Message}");
-                        progress.Text = $"[{processed + 1}/{targetGames.Count}] Failed: {game.Name}";
-                    }
-                    finally
-                    {
-                        progress.CurrentProgressValue = ++processed;
+                        if (!int.TryParse(game.GameId, out var appId) || appId <= 0)
+                        {
+                            progress.Text = $"[{processed + 1}/{targetGames.Count}] Skipping {game.Name} (no App ID)";
+                            progress.CurrentProgressValue = ++processed;
+                            continue;
+                        }
+
+                        try
+                        {
+                            // Check if data is already cached
+                            bool hasProtonCached = fetcher.TryGetCachedProtonDbSummary(appId, out _);
+                            bool hasDeckCached = fetcher.TryGetCachedDeckCompatibility(appId, out _);
+                            bool isFullyCached = hasProtonCached && hasDeckCached;
+
+                            progress.Text = $"[{processed + 1}/{targetGames.Count}] Fetching {game.Name}..." + 
+                                          (isFullyCached ? " (cached)" : " (from API)");
+                            logger.Debug($"Progress: {processed}/{targetGames.Count} - {game.Name} (delay: {debugDelayMs}ms)");
+
+                            // Optional artificial delay to help debug progress pacing
+                            if (debugDelayMs > 0)
+                            {
+                                try { await Task.Delay(debugDelayMs, progress.CancelToken).ConfigureAwait(false); } catch (TaskCanceledException) { }
+                            }
+                            
+                            var fetchResult = await fetcher.GetBothAsync(appId).ConfigureAwait(false);
+                            var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
+
+                            progress.Text = $"[{processed + 1}/{targetGames.Count}] Updating {game.Name}...";
+                            updater.Apply(game, mapping);
+                            PlayniteApi.Database.Games.Update(game);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Debug($"Failed to update game '{game.Name}': {ex.Message}");
+                            progress.Text = $"[{processed + 1}/{targetGames.Count}] Failed: {game.Name}";
+                        }
+                        finally
+                        {
+                            progress.CurrentProgressValue = ++processed;
+                        }
                     }
                 }
+                // BufferedUpdate ends here - single event sent to all plugins
+                logger.Info($"Bulk update completed - processed {processed} games");
             }, progressOptions);
         }
     }

@@ -28,7 +28,8 @@ namespace SteamDeckProtonDb.Tests
         [Test]
         public async Task ParsesVerifiedToken_ReturnsVerified()
         {
-            var body = "{ \"some\": \"data\", \"description\": \"This is Steam Deck Verified content\" }";
+            // New endpoint format with resolved_category = 3 for Verified
+            var body = @"{""success"":1,""results"":{""resolved_category"":3}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
@@ -46,7 +47,8 @@ namespace SteamDeckProtonDb.Tests
         [Test]
         public async Task ParsesPlayableToken_ReturnsPlayable()
         {
-            var body = "This payload contains playable and other words";
+            // New endpoint format with resolved_category = 2 for Playable
+            var body = @"{""success"":1,""results"":{""resolved_category"":2}}";
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
