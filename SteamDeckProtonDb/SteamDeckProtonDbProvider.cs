@@ -28,24 +28,24 @@ namespace SteamDeckProtonDb
         {
             this.options = options;
             this.plugin = plugin;
-                // Wire default clients; these can be replaced later for testing.
-                // Load plugin settings and wire into clients (cache TTL and ProtonDB API URL).
-                var settings = plugin.LoadPluginSettings<SteamDeckProtonDbSettings>() ?? new SteamDeckProtonDbSettings();
-                var protonClient = new ProtonDbClient(apiUrlFormat: settings.ProtonDbApiUrl);
-                var deckSource = new LocalSteamDeckSource();
-                ICacheManager cacheManager;
-                if (settings.UseFileCache)
-                {
-                    var cacheDir = Path.Combine(plugin.GetPluginUserDataPath(), "cache");
-                    cacheManager = new FileCacheManager(cacheDir);
-                }
-                else
-                {
-                    cacheManager = new InMemoryCacheManager();
-                }
-                fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes);
+            // Wire default clients; these can be replaced later for testing.
+            // Load plugin settings and wire into clients (cache TTL and ProtonDB API URL).
+            var settings = plugin.LoadPluginSettings<SteamDeckProtonDbSettings>() ?? new SteamDeckProtonDbSettings();
+            var protonClient = new ProtonDbClient(apiUrlFormat: settings.ProtonDbApiUrl);
+            var deckSource = new LocalSteamDeckSource();
+            ICacheManager cacheManager;
+            if (settings.UseFileCache)
+            {
+                var cacheDir = Path.Combine(plugin.GetPluginUserDataPath(), "cache");
+                cacheManager = new FileCacheManager(cacheDir);
+            }
+            else
+            {
+                cacheManager = new InMemoryCacheManager();
+            }
+            fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes);
             processor = new MetadataProcessor();
-              updater = new MetadataUpdater(plugin, settings);
+            updater = new MetadataUpdater(plugin, settings);
         }
 
         // Override additional methods based on supported metadata fields.
@@ -191,16 +191,16 @@ namespace SteamDeckProtonDb
     {
         private readonly IProtonDbClient protonClient;
         private readonly ISteamDeckSource deckSource;
-           private readonly ICacheManager cacheManager;
-           private readonly int cacheTtlMinutes;
-           private static readonly Playnite.SDK.ILogger logger = Playnite.SDK.LogManager.GetLogger();
+        private readonly ICacheManager cacheManager;
+        private readonly int cacheTtlMinutes;
+        private static readonly Playnite.SDK.ILogger logger = Playnite.SDK.LogManager.GetLogger();
 
-           public MetadataFetcher(IProtonDbClient protonClient, ISteamDeckSource deckSource, ICacheManager cacheManager = null, int cacheTtlMinutes = 1440)
+        public MetadataFetcher(IProtonDbClient protonClient, ISteamDeckSource deckSource, ICacheManager cacheManager = null, int cacheTtlMinutes = 1440)
         {
             this.protonClient = protonClient ?? throw new ArgumentNullException(nameof(protonClient));
             this.deckSource = deckSource ?? throw new ArgumentNullException(nameof(deckSource));
-                this.cacheManager = cacheManager ?? new InMemoryCacheManager();
-                this.cacheTtlMinutes = cacheTtlMinutes;
+            this.cacheManager = cacheManager ?? new InMemoryCacheManager();
+            this.cacheTtlMinutes = cacheTtlMinutes;
         }
 
         public async Task<ProtonDbResult> GetProtonDbSummaryAsync(int appId)
@@ -363,7 +363,7 @@ namespace SteamDeckProtonDb
         public MetadataUpdater(SteamDeckProtonDb plugin, SteamDeckProtonDbSettings settings = null)
         {
             this.plugin = plugin;
-                this.settings = settings;
+            this.settings = settings;
         }
 
         public void Apply(Game game, MappingResult result, bool dryRun = false)
