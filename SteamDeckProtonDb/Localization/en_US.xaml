@@ -69,5 +69,7 @@
     
     <!-- Menu Items -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_Description">Add Steam Deck/ProtonDB tags and link</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_MissingOnly">Add Steam Deck/ProtonDB tags and link (missing only)</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_MissingOnly_Empty">Selected games already have Steam Deck/ProtonDB data.</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_MenuItem_Section">@Steam Deck ProtonDB</sys:String>
 </ResourceDictionary>

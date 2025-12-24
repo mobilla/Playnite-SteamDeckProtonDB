@@ -54,6 +54,8 @@ namespace SteamDeckProtonDb
         {
             var localization = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_Description") 
                             ?? "Add Steam Deck/ProtonDB tags and link";
+            var missingOnlyLocalization = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_MissingOnly") 
+                                      ?? "Add Steam Deck/ProtonDB tags and link (missing only)";
             var section = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_Section") 
                        ?? "@Steam Deck ProtonDB";
             
@@ -64,6 +66,12 @@ namespace SteamDeckProtonDb
                     Description = localization,
                     MenuSection = section,
                     Action = _ => AddTagsAndLinksToGames(PlayniteApi?.MainView?.SelectedGames)
+                },
+                new MainMenuItem
+                {
+                    Description = missingOnlyLocalization,
+                    MenuSection = section,
+                    Action = _ => AddTagsAndLinksToGamesMissingData(PlayniteApi?.MainView?.SelectedGames)
                 }
             };
         }
@@ -86,6 +94,124 @@ namespace SteamDeckProtonDb
             }
 
             return new MetadataFetcher(protonClient, deckSource, cacheManager, currentSettings.CacheTtlMinutes);
+        }
+
+        private bool NeedsPluginUpdate(Game game)
+        {
+            if (game == null)
+            {
+                return false;
+            }
+
+            bool needsDeckCategories = settings?.EnableSteamDeckCategories == true && !HasSteamDeckCategory(game);
+            bool needsProtonCategories = settings?.EnableProtonDbCategories == true && !HasProtonDbCategory(game);
+            bool needsTags = settings?.EnableTags == true && !HasPluginTags(game);
+            bool needsFeatures = settings?.EnableFeatures == true && !HasPluginFeatures(game);
+            bool needsLink = settings?.EnableProtonDbLink == true && !HasProtonDbLink(game);
+
+            return needsDeckCategories || needsProtonCategories || needsTags || needsFeatures || needsLink;
+        }
+
+        private bool HasSteamDeckCategory(Game game)
+        {
+            var categories = game?.Categories;
+            if (categories == null)
+            {
+                return false;
+            }
+
+            return categories.Any(c =>
+                c != null &&
+                !string.IsNullOrEmpty(c.Name) &&
+                (string.Equals(c.Name, "Steam Deck", StringComparison.OrdinalIgnoreCase) ||
+                 c.Name.StartsWith("Steam Deck -", StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        private bool HasProtonDbCategory(Game game)
+        {
+            var categories = game?.Categories;
+            if (categories == null)
+            {
+                return false;
+            }
+
+            return categories.Any(c =>
+                c != null &&
+                !string.IsNullOrEmpty(c.Name) &&
+                (string.Equals(c.Name, "ProtonDB", StringComparison.OrdinalIgnoreCase) ||
+                 c.Name.StartsWith("ProtonDB -", StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        private bool HasPluginTags(Game game)
+        {
+            if (game?.TagIds == null || !game.TagIds.Any())
+            {
+                return false;
+            }
+
+            var dbTags = PlayniteApi?.Database?.Tags;
+            if (dbTags == null)
+            {
+                return false;
+            }
+
+            return dbTags
+                .Where(t => t != null && game.TagIds.Contains(t.Id))
+                .Any(t =>
+                    !string.IsNullOrEmpty(t.Name) &&
+                    (t.Name.StartsWith("steamdeck:", StringComparison.OrdinalIgnoreCase) ||
+                     t.Name.StartsWith("protondb:", StringComparison.OrdinalIgnoreCase))
+                );
+        }
+
+        private bool HasPluginFeatures(Game game)
+        {
+            if (game?.FeatureIds == null || !game.FeatureIds.Any())
+            {
+                return false;
+            }
+
+            var dbFeatures = PlayniteApi?.Database?.Features;
+            if (dbFeatures == null)
+            {
+                return false;
+            }
+
+            return dbFeatures
+                .Where(f => f != null && game.FeatureIds.Contains(f.Id))
+                .Any(f =>
+                    !string.IsNullOrEmpty(f.Name) &&
+                    (f.Name.StartsWith("Steamdeck:", StringComparison.OrdinalIgnoreCase) ||
+                     f.Name.StartsWith("Protondb:", StringComparison.OrdinalIgnoreCase))
+                );
+        }
+
+        private bool HasProtonDbLink(Game game)
+        {
+            var links = game?.Links;
+            if (links == null)
+            {
+                return false;
+            }
+
+            return links.Any(l => l != null && string.Equals(l.Name, "ProtonDB", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void AddTagsAndLinksToGamesMissingData(IEnumerable<Game> games)
+        {
+            var missingGames = games?.Where(NeedsPluginUpdate).ToList() ?? new List<Game>();
+            if (!missingGames.Any())
+            {
+                var noMissingMessage = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_MissingOnly_Empty")
+                                     ?? "Selected games already have Steam Deck/ProtonDB data.";
+                PlayniteApi.Dialogs?.ShowMessage(noMissingMessage);
+                return;
+            }
+
+            logger.Info($"Missing-only update - {missingGames.Count} of {games?.Count() ?? 0} selected games need data");
+            AddTagsAndLinksToGames(missingGames);
         }
 
         private void AddTagsAndLinksToGames(IEnumerable<Game> games)
