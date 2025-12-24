@@ -112,7 +112,16 @@ namespace SteamDeckProtonDb
 
                 if (!string.IsNullOrEmpty(mapping.ProtonDbUrl))
                 {
-                    links.Add(new Link("ProtonDB", mapping.ProtonDbUrl));
+                    // Avoid returning a duplicate link if it already exists on the game.
+                    var hasExisting = gameMeta?.Links != null && gameMeta.Links.Any(l =>
+                        string.Equals(l.Url, mapping.ProtonDbUrl, StringComparison.OrdinalIgnoreCase) ||
+                        (string.Equals(l.Name, "ProtonDB", StringComparison.OrdinalIgnoreCase) && string.Equals(l.Url, mapping.ProtonDbUrl, StringComparison.OrdinalIgnoreCase))
+                    );
+
+                    if (!hasExisting)
+                    {
+                        links.Add(new Link("ProtonDB", mapping.ProtonDbUrl));
+                    }
                 }
 
                 return links;
