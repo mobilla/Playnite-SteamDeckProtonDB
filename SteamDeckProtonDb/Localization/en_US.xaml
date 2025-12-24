@@ -46,6 +46,29 @@
     <sys:String x:Key="LOC_SteamDeckProtonDb_DebugProgressDelay">Progress Delay (ms):</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_DebugProgressDelayDesc">Optional artificial delay applied per game while running the menu action. Useful to observe progress updates; leave 0 to disable.</sys:String>
     
+    <!-- Tag & Feature Names Configuration -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_TagFeatureNamesHeader">Tag &amp; Feature Names</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckNamesHeader">Steam Deck Tag/Feature Names</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckNamesDesc">Customize the tag and feature names used for Steam Deck compatibility.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_TagPrefix">Tag Prefix:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_VerifiedTag">Verified Tag:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_PlayableTag">Playable Tag:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_UnsupportedTag">Unsupported Tag:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_VerifiedFeature">Verified Feature:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_PlayableFeature">Playable Feature:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_UnsupportedFeature">Unsupported Feature:</sys:String>
+    
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbNamesHeader">ProtonDB Tag/Feature Names</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbNamesDesc">Customize the tag and feature prefixes and rating names used for ProtonDB tiers.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_FeaturePrefix">Feature Prefix:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbRatingNamesHeader">ProtonDB Rating Names</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_PlatinumRating">Platinum:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_GoldRating">Gold:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SilverRating">Silver:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_BronzeRating">Bronze:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_PlausibleRating">Plausible:</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_BorkedRating">Borked:</sys:String>
+    
     <!-- Category and Tag Names -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeck">Steam Deck</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckVerified">Steam Deck - Verified</sys:String>

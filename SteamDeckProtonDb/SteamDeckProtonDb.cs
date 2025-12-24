@@ -157,12 +157,15 @@ namespace SteamDeckProtonDb
                 return false;
             }
 
+            var tagPrefix1 = settings?.SteamDeckTagPrefix ?? "steamdeck:";
+            var tagPrefix2 = settings?.ProtonDbTagPrefix ?? "protondb:";
+
             return dbTags
                 .Where(t => t != null && game.TagIds.Contains(t.Id))
                 .Any(t =>
                     !string.IsNullOrEmpty(t.Name) &&
-                    (t.Name.StartsWith("steamdeck:", StringComparison.OrdinalIgnoreCase) ||
-                     t.Name.StartsWith("protondb:", StringComparison.OrdinalIgnoreCase))
+                    (t.Name.StartsWith(tagPrefix1, StringComparison.OrdinalIgnoreCase) ||
+                     t.Name.StartsWith(tagPrefix2, StringComparison.OrdinalIgnoreCase))
                 );
         }
 
@@ -179,12 +182,15 @@ namespace SteamDeckProtonDb
                 return false;
             }
 
+            var featurePrefix1 = settings?.SteamDeckVerifiedFeature ?? "Steamdeck ";
+            var featurePrefix2 = settings?.ProtonDbFeaturePrefix ?? "Protondb ";
+
             return dbFeatures
                 .Where(f => f != null && game.FeatureIds.Contains(f.Id))
                 .Any(f =>
                     !string.IsNullOrEmpty(f.Name) &&
-                    (f.Name.StartsWith("Steamdeck:", StringComparison.OrdinalIgnoreCase) ||
-                     f.Name.StartsWith("Protondb:", StringComparison.OrdinalIgnoreCase))
+                    (f.Name.StartsWith(featurePrefix1, StringComparison.OrdinalIgnoreCase) ||
+                     f.Name.StartsWith(featurePrefix2, StringComparison.OrdinalIgnoreCase))
                 );
         }
 
@@ -226,7 +232,7 @@ namespace SteamDeckProtonDb
             logger.Info($"Starting bulk update for {targetGames.Count} games");
 
             var fetcher = BuildFetcher();
-            var processor = new MetadataProcessor();
+            var processor = new MetadataProcessor(settings);
             var updater = new MetadataUpdater(this, settings);
 
             var progressOptions = new GlobalProgressOptions("Adding Steam Deck/ProtonDB tags and link")

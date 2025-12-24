@@ -21,9 +21,48 @@ namespace SteamDeckProtonDb
         private int protonDbRateLimitMs = 1000; // Default: ~60 req/min
         private int steamStoreRateLimitMs = 600; // Default: ~100 req/min
         private int debugProgressDelayMs = 0; // Optional artificial delay per item for debugging progress UI
+        
+        // Steam Deck tag/feature names (configurable)
+        private string steamDeckTagPrefix = "steamdeck:";
+        private string steamDeckVerifiedTag = "verified";
+        private string steamDeckPlayableTag = "playable";
+        private string steamDeckUnsupportedTag = "unsupported";
+        private string steamDeckVerifiedFeature = "Steamdeck Verified";
+        private string steamDeckPlayableFeature = "Steamdeck Playable";
+        private string steamDeckUnsupportedFeature = "Steamdeck Unsupported";
+        
+        // ProtonDB tag/feature names (configurable)
+        private string protonDbTagPrefix = "protondb:";
+        private string protonDbFeaturePrefix = "Protondb ";
+        private string protonDbPlatinumRating = "Platinum";
+        private string protonDbGoldRating = "Gold";
+        private string protonDbSilverRating = "Silver";
+        private string protonDbBronzeRating = "Bronze";
+        private string protonDbPlausibleRating = "Plausible";
+        private string protonDbBorkedRating = "Borked";
+        
         public int ProtonDbRateLimitMs { get => protonDbRateLimitMs; set => SetValue(ref protonDbRateLimitMs, value); }
         public int SteamStoreRateLimitMs { get => steamStoreRateLimitMs; set => SetValue(ref steamStoreRateLimitMs, value); }
         public int DebugProgressDelayMs { get => debugProgressDelayMs; set => SetValue(ref debugProgressDelayMs, value); }
+        
+        // Steam Deck tag/feature name properties
+        public string SteamDeckTagPrefix { get => steamDeckTagPrefix; set => SetValue(ref steamDeckTagPrefix, value); }
+        public string SteamDeckVerifiedTag { get => steamDeckVerifiedTag; set => SetValue(ref steamDeckVerifiedTag, value); }
+        public string SteamDeckPlayableTag { get => steamDeckPlayableTag; set => SetValue(ref steamDeckPlayableTag, value); }
+        public string SteamDeckUnsupportedTag { get => steamDeckUnsupportedTag; set => SetValue(ref steamDeckUnsupportedTag, value); }
+        public string SteamDeckVerifiedFeature { get => steamDeckVerifiedFeature; set => SetValue(ref steamDeckVerifiedFeature, value); }
+        public string SteamDeckPlayableFeature { get => steamDeckPlayableFeature; set => SetValue(ref steamDeckPlayableFeature, value); }
+        public string SteamDeckUnsupportedFeature { get => steamDeckUnsupportedFeature; set => SetValue(ref steamDeckUnsupportedFeature, value); }
+        
+        // ProtonDB tag/feature name properties
+        public string ProtonDbTagPrefix { get => protonDbTagPrefix; set => SetValue(ref protonDbTagPrefix, value); }
+        public string ProtonDbFeaturePrefix { get => protonDbFeaturePrefix; set => SetValue(ref protonDbFeaturePrefix, value); }
+        public string ProtonDbPlatinumRating { get => protonDbPlatinumRating; set => SetValue(ref protonDbPlatinumRating, value); }
+        public string ProtonDbGoldRating { get => protonDbGoldRating; set => SetValue(ref protonDbGoldRating, value); }
+        public string ProtonDbSilverRating { get => protonDbSilverRating; set => SetValue(ref protonDbSilverRating, value); }
+        public string ProtonDbBronzeRating { get => protonDbBronzeRating; set => SetValue(ref protonDbBronzeRating, value); }
+        public string ProtonDbPlausibleRating { get => protonDbPlausibleRating; set => SetValue(ref protonDbPlausibleRating, value); }
+        public string ProtonDbBorkedRating { get => protonDbBorkedRating; set => SetValue(ref protonDbBorkedRating, value); }
 
         // Parameterless constructor required for Playnite deserialization
         public SteamDeckProtonDbSettings()
@@ -84,6 +123,25 @@ namespace SteamDeckProtonDb
             ProtonDbRateLimitMs = source.ProtonDbRateLimitMs;
             SteamStoreRateLimitMs = source.SteamStoreRateLimitMs;
             DebugProgressDelayMs = source.DebugProgressDelayMs;
+            
+            // Load Steam Deck tag/feature names
+            SteamDeckTagPrefix = source.SteamDeckTagPrefix;
+            SteamDeckVerifiedTag = source.SteamDeckVerifiedTag;
+            SteamDeckPlayableTag = source.SteamDeckPlayableTag;
+            SteamDeckUnsupportedTag = source.SteamDeckUnsupportedTag;
+            SteamDeckVerifiedFeature = source.SteamDeckVerifiedFeature;
+            SteamDeckPlayableFeature = source.SteamDeckPlayableFeature;
+            SteamDeckUnsupportedFeature = source.SteamDeckUnsupportedFeature;
+            
+            // Load ProtonDB tag/feature names
+            ProtonDbTagPrefix = source.ProtonDbTagPrefix;
+            ProtonDbFeaturePrefix = source.ProtonDbFeaturePrefix;
+            ProtonDbPlatinumRating = source.ProtonDbPlatinumRating;
+            ProtonDbGoldRating = source.ProtonDbGoldRating;
+            ProtonDbSilverRating = source.ProtonDbSilverRating;
+            ProtonDbBronzeRating = source.ProtonDbBronzeRating;
+            ProtonDbPlausibleRating = source.ProtonDbPlausibleRating;
+            ProtonDbBorkedRating = source.ProtonDbBorkedRating;
         }
 
         public void EndEdit()

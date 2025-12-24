@@ -44,7 +44,7 @@ namespace SteamDeckProtonDb
                 cacheManager = new InMemoryCacheManager();
             }
             fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes);
-            processor = new MetadataProcessor();
+            processor = new MetadataProcessor(settings);
             updater = new MetadataUpdater(plugin, settings);
         }
 
@@ -286,8 +286,11 @@ namespace SteamDeckProtonDb
 
     public class MetadataProcessor
     {
-        public MetadataProcessor()
+        private readonly SteamDeckProtonDbSettings settings;
+
+        public MetadataProcessor(SteamDeckProtonDbSettings settings = null)
         {
+            this.settings = settings ?? new SteamDeckProtonDbSettings();
         }
 
         public MappingResult Map(int appId, SteamDeckCompatibility deck, ProtonDbResult proton)
@@ -302,10 +305,12 @@ namespace SteamDeckProtonDb
                         result.Categories.Add("Steam Deck");
                     if (!result.Categories.Contains("Steam Deck - Verified"))
                         result.Categories.Add("Steam Deck - Verified");
-                    if (!result.Tags.Contains("steamdeck:verified"))
-                        result.Tags.Add("steamdeck:verified");
-                    if (!result.Features.Contains("Verified"))
-                        result.Features.Add("Steamdeck:Verified");
+                    var verifiedTag = settings.SteamDeckTagPrefix + settings.SteamDeckVerifiedTag;
+                    if (!result.Tags.Contains(verifiedTag))
+                        result.Tags.Add(verifiedTag);
+                    var verifiedFeature = settings.SteamDeckVerifiedFeature;
+                    if (!result.Features.Contains(verifiedFeature))
+                        result.Features.Add(verifiedFeature);
                     break;
 
                 case SteamDeckCompatibility.Playable:
@@ -313,10 +318,12 @@ namespace SteamDeckProtonDb
                         result.Categories.Add("Steam Deck");
                     if (!result.Categories.Contains("Steam Deck - Playable"))
                         result.Categories.Add("Steam Deck - Playable");
-                    if (!result.Tags.Contains("steamdeck:playable"))
-                        result.Tags.Add("steamdeck:playable");
-                    if (!result.Features.Contains("Playable"))
-                        result.Features.Add("Steamdeck:Playable");
+                    var playableTag = settings.SteamDeckTagPrefix + settings.SteamDeckPlayableTag;
+                    if (!result.Tags.Contains(playableTag))
+                        result.Tags.Add(playableTag);
+                    var playableFeature = settings.SteamDeckPlayableFeature;
+                    if (!result.Features.Contains(playableFeature))
+                        result.Features.Add(playableFeature);
                     break;
 
                 case SteamDeckCompatibility.Unsupported:
@@ -324,10 +331,12 @@ namespace SteamDeckProtonDb
                         result.Categories.Add("Steam Deck");
                     if (!result.Categories.Contains("Steam Deck - Unsupported"))
                         result.Categories.Add("Steam Deck - Unsupported");
-                    if (!result.Tags.Contains("steamdeck:unsupported"))
-                        result.Tags.Add("steamdeck:unsupported");
-                    if (!result.Features.Contains("Unsupported"))
-                        result.Features.Add("Steamdeck:Unsupported");
+                    var unsupportedTag = settings.SteamDeckTagPrefix + settings.SteamDeckUnsupportedTag;
+                    if (!result.Tags.Contains(unsupportedTag))
+                        result.Tags.Add(unsupportedTag);
+                    var unsupportedFeature = settings.SteamDeckUnsupportedFeature;
+                    if (!result.Features.Contains(unsupportedFeature))
+                        result.Features.Add(unsupportedFeature);
                     break;
 
                 case SteamDeckCompatibility.Unknown:
@@ -339,7 +348,7 @@ namespace SteamDeckProtonDb
             var tier = proton?.Tier ?? ProtonDbTier.Unknown;
             if (tier != ProtonDbTier.Unknown)
             {
-                var tierName = tier.ToString();
+                var tierName = GetProtonDbTierName(tier);
                 
                 if (!result.Categories.Contains("ProtonDB"))
                     result.Categories.Add("ProtonDB");
@@ -348,11 +357,11 @@ namespace SteamDeckProtonDb
                 if (!result.Categories.Contains(tierCategory))
                     result.Categories.Add(tierCategory);
                 
-                var tierTag = $"protondb:{tierName.ToLowerInvariant()}";
+                var tierTag = $"{settings.ProtonDbTagPrefix}{tierName.ToLowerInvariant()}";
                 if (!result.Tags.Contains(tierTag))
                     result.Tags.Add(tierTag);
                 
-                var tierFeature = $"Protondb:{tierName}";
+                var tierFeature = $"{settings.ProtonDbFeaturePrefix}{tierName}";
                 if (!result.Features.Contains(tierFeature))
                     result.Features.Add(tierFeature);
                 
@@ -360,6 +369,27 @@ namespace SteamDeckProtonDb
             }
 
             return result;
+        }
+
+        private string GetProtonDbTierName(ProtonDbTier tier)
+        {
+            switch (tier)
+            {
+                case ProtonDbTier.Platinum:
+                    return settings.ProtonDbPlatinumRating;
+                case ProtonDbTier.Gold:
+                    return settings.ProtonDbGoldRating;
+                case ProtonDbTier.Silver:
+                    return settings.ProtonDbSilverRating;
+                case ProtonDbTier.Bronze:
+                    return settings.ProtonDbBronzeRating;
+                case ProtonDbTier.Plausible:
+                    return settings.ProtonDbPlausibleRating;
+                case ProtonDbTier.Borked:
+                    return settings.ProtonDbBorkedRating;
+                default:
+                    return tier.ToString();
+            }
         }
     }
 
