@@ -99,12 +99,19 @@ namespace SteamDeckProtonDb
 
         private void WireUpEventHandlers(UIElement root)
         {
-            // Find the button by name in the visual tree (should work within TabControl)
-            var button = FindVisualChild<Button>(root, b => 
+            // Find the buttons by name in the visual tree (should work within TabControl)
+            var openButton = FindVisualChild<Button>(root, b => 
                 (b as FrameworkElement)?.Name == "OpenCacheDirectoryButton");
-            if (button != null)
+            if (openButton != null)
             {
-                button.Click += OpenCacheDirectory_Click;
+                openButton.Click += OpenCacheDirectory_Click;
+            }
+
+            var clearButton = FindVisualChild<Button>(root, b => 
+                (b as FrameworkElement)?.Name == "ClearCacheButton");
+            if (clearButton != null)
+            {
+                clearButton.Click += ClearCache_Click;
             }
         }
 
@@ -160,6 +167,51 @@ namespace SteamDeckProtonDb
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to open cache directory: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ClearCache_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (plugin == null)
+                {
+                    MessageBox.Show("Plugin reference not available.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    "Are you sure you want to clear the cache? This will delete all cached Steam Deck and ProtonDB data.",
+                    "Clear Cache",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                var cacheDir = System.IO.Path.Combine(plugin.GetPluginUserDataPath(), "cache");
+                
+                if (Directory.Exists(cacheDir))
+                {
+                    int filesDeleted = 0;
+                    foreach (var file in Directory.GetFiles(cacheDir, "*.json"))
+                    {
+                        File.Delete(file);
+                        filesDeleted++;
+                    }
+
+                    MessageBox.Show($"Cache cleared successfully. {filesDeleted} file(s) deleted.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Cache directory does not exist.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to clear cache: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
