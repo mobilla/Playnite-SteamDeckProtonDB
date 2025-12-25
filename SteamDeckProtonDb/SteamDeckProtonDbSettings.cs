@@ -21,6 +21,8 @@ namespace SteamDeckProtonDb
         private int protonDbRateLimitMs = 1000; // Default: ~60 req/min
         private int steamStoreRateLimitMs = 600; // Default: ~100 req/min
         private int debugProgressDelayMs = 0; // Optional artificial delay per item for debugging progress UI
+        private bool autoFetchOnLibraryUpdate = false; // Auto-fetch status when games are added to library
+        private DateTime? lastAutoLibUpdateTime = null; // Track last time auto-fetch ran on library update
         
         // Steam Deck tag/feature names (configurable)
         private string steamDeckTagPrefix = "steamdeck:";
@@ -44,6 +46,8 @@ namespace SteamDeckProtonDb
         public int ProtonDbRateLimitMs { get => protonDbRateLimitMs; set => SetValue(ref protonDbRateLimitMs, value); }
         public int SteamStoreRateLimitMs { get => steamStoreRateLimitMs; set => SetValue(ref steamStoreRateLimitMs, value); }
         public int DebugProgressDelayMs { get => debugProgressDelayMs; set => SetValue(ref debugProgressDelayMs, value); }
+        public bool AutoFetchOnLibraryUpdate { get => autoFetchOnLibraryUpdate; set => SetValue(ref autoFetchOnLibraryUpdate, value); }
+        public DateTime? LastAutoLibUpdateTime { get => lastAutoLibUpdateTime; set => SetValue(ref lastAutoLibUpdateTime, value); }
         
         // Steam Deck tag/feature name properties
         public string SteamDeckTagPrefix { get => steamDeckTagPrefix; set => SetValue(ref steamDeckTagPrefix, value); }
@@ -123,6 +127,8 @@ namespace SteamDeckProtonDb
             ProtonDbRateLimitMs = source.ProtonDbRateLimitMs;
             SteamStoreRateLimitMs = source.SteamStoreRateLimitMs;
             DebugProgressDelayMs = source.DebugProgressDelayMs;
+            AutoFetchOnLibraryUpdate = source.AutoFetchOnLibraryUpdate;
+            LastAutoLibUpdateTime = source.LastAutoLibUpdateTime;
             
             // Load Steam Deck tag/feature names
             SteamDeckTagPrefix = source.SteamDeckTagPrefix;

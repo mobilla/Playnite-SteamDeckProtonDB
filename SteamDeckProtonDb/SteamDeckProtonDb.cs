@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Controls;
 using System.Threading.Tasks;
+using Playnite.SDK.Events;
 
 namespace SteamDeckProtonDb
 {
@@ -320,6 +321,95 @@ namespace SteamDeckProtonDb
             }, progressOptions);
             
             logger.Info("Progress dialog closed - operation complete");
+        }
+
+        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
+        {
+            if (settings?.AutoFetchOnLibraryUpdate != true)
+            {
+                return;
+            }
+
+            logger.Info("Auto-fetch: Library updated event triggered");
+
+            // Fetch metadata for newly added games in background without blocking UI
+            Task.Run(() =>
+            {
+                try
+                {
+                    // Get games added since last auto-update (or all games if never run before)
+                    var newlyAddedGames = PlayniteApi?.Database?.Games
+                        .Where(g => g != null && g.Added.HasValue && 
+                                  (settings.LastAutoLibUpdateTime == null || g.Added > settings.LastAutoLibUpdateTime))
+                        .ToList() ?? new List<Game>();
+
+                    if (!newlyAddedGames.Any())
+                    {
+                        logger.Debug("Auto-fetch: No newly added games");
+                        settings.LastAutoLibUpdateTime = DateTime.Now;
+                        SavePluginSettings(settings);
+                        return;
+                    }
+
+                    // Filter to games with valid Steam App IDs that need updating
+                    var gamesToUpdate = newlyAddedGames.Where(g =>
+                        !string.IsNullOrEmpty(g.GameId) &&
+                        int.TryParse(g.GameId, out var appId) &&
+                        appId > 0 &&
+                        NeedsPluginUpdate(g)
+                    ).ToList();
+
+                    if (!gamesToUpdate.Any())
+                    {
+                        logger.Debug($"Auto-fetch: {newlyAddedGames.Count} games added but none need metadata");
+                        settings.LastAutoLibUpdateTime = DateTime.Now;
+                        SavePluginSettings(settings);
+                        return;
+                    }
+
+                    logger.Info($"Auto-fetch: Processing {gamesToUpdate.Count} newly added games (out of {newlyAddedGames.Count} total new games)");
+
+                    var fetcher = BuildFetcher();
+                    var processor = new MetadataProcessor(settings);
+                    var updater = new MetadataUpdater(this, settings);
+
+                    using (PlayniteApi.Database.BufferedUpdate())
+                    {
+                        foreach (var game in gamesToUpdate)
+                        {
+                            try
+                            {
+                                if (!int.TryParse(game.GameId, out var appId))
+                                {
+                                    continue;
+                                }
+
+                                logger.Debug($"Auto-fetch: Fetching metadata for {game.Name} (App ID: {appId})");
+                                var fetchTask = fetcher.GetBothAsync(appId);
+                                fetchTask.Wait();
+                                var fetchResult = fetchTask.Result;
+                                var mapping = processor.Map(appId, fetchResult.Deck, fetchResult.Proton);
+                                updater.Apply(game, mapping);
+                                PlayniteApi.Database.Games.Update(game);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Debug($"Auto-fetch: Failed to update game '{game.Name}': {ex.Message}");
+                            }
+                        }
+                    }
+
+                    // Update the timestamp after successful processing
+                    settings.LastAutoLibUpdateTime = DateTime.Now;
+                    SavePluginSettings(settings);
+                    
+                    logger.Info($"Auto-fetch: Completed processing {gamesToUpdate.Count} games");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Auto-fetch: Error during background update: {ex}");
+                }
+            });
         }
     }
 }

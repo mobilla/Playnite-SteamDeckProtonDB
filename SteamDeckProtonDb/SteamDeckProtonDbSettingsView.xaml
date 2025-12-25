@@ -26,7 +26,14 @@
                         <CheckBox IsChecked="{Binding EnableProtonDbLink}" Margin="0,0,0,8">
                             <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_EnableProtonDbLink}"/>
                         </CheckBox>
-                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbSectionDesc}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{DynamicResource LOC_SteamDeckProtonDb_ProtonDbSectionDesc}" FontSize="11" Foreground="Gray" Margin="0,0,0,16"/>
+                        
+                        <!-- Auto-Fetch Settings -->
+                        <TextBlock Text="Automation" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <CheckBox IsChecked="{Binding AutoFetchOnLibraryUpdate}" Margin="0,0,0,8">
+                            <TextBlock Text="Auto-fetch status when games are added to library"/>
+                        </CheckBox>
+                        <TextBlock Text="Automatically fetch Steam Deck and ProtonDB status when new games are added to your library." FontSize="11" Foreground="Gray"/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
