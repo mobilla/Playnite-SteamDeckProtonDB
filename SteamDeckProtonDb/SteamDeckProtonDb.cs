@@ -206,6 +206,201 @@ namespace SteamDeckProtonDb
             return links.Any(l => l != null && string.Equals(l.Name, "ProtonDB", StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Try to extract Steam App ID from game links (e.g., Steam store URLs)
+        /// </summary>
+        private bool TryGetAppIdFromLinks(Game game, out int appId)
+        {
+            appId = 0;
+            var links = game?.Links;
+            if (links == null)
+            {
+                return false;
+            }
+
+            foreach (var link in links.Where(l => l != null && !string.IsNullOrEmpty(l.Url)))
+            {
+                // Match Steam store URLs like https://store.steampowered.com/app/123456
+                var match = System.Text.RegularExpressions.Regex.Match(link.Url, @"store\.steampowered\.com/app/(\d+)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out var parsedId) && parsedId > 0)
+                {
+                    appId = parsedId;
+                    logger.Debug($"Found App ID {appId} in link: {link.Url}");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Query Steam Store search API to find an App ID by game name (fallback for non-Steam games)
+        /// Implements robust fuzzy matching:
+        /// - Strips common articles ("the", "a", "an")
+        /// - Uses a longer normalized prefix (up to 12 chars)
+        /// - Requires numeric tokens in title to also appear in matched name
+        /// - Evaluates all search results from Steam Store search
+        /// </summary>
+        private async System.Threading.Tasks.Task<int> TryGetAppIdFromSteamApiAsync(Game game)
+        {
+            if (game == null || string.IsNullOrEmpty(game.Name))
+            {
+                return 0;
+            }
+
+            string NormalizeTitle(string title)
+            {
+                var t = title.ToLowerInvariant();
+                // Replace non-alphanumeric with space
+                t = System.Text.RegularExpressions.Regex.Replace(t, "[^a-z0-9]+", " ");
+                // Remove common articles as standalone words
+                t = System.Text.RegularExpressions.Regex.Replace(t, "\\b(the|a|an)\\b", " ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                // Collapse spaces
+                t = System.Text.RegularExpressions.Regex.Replace(t, "\\s+", " ").Trim();
+                return t;
+            }
+
+            System.Collections.Generic.List<string> ExtractNumbers(string title)
+            {
+                var nums = new System.Collections.Generic.List<string>();
+                var m = System.Text.RegularExpressions.Regex.Matches(title, "\\d+");
+                foreach (System.Text.RegularExpressions.Match mm in m)
+                {
+                    if (mm.Success) nums.Add(mm.Value);
+                }
+                return nums;
+            }
+
+            try
+            {
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = System.TimeSpan.FromSeconds(10);
+                    var searchTerm = System.Uri.EscapeDataString(game.Name);
+                    var url = $"https://store.steampowered.com/api/storesearch/?term={searchTerm}&l=en&cc=US";
+                    var response = await client.GetAsync(url);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.Debug($"Steam API request failed: {response.StatusCode}");
+                        return 0;
+                    }
+
+                    var json = await response.Content.ReadAsStringAsync();
+
+                    // Collect all name/appid pairs from store search items
+                    var all = System.Text.RegularExpressions.Regex.Matches(
+                        json,
+                        "\\\"id\\\"\\s*:\\s*(\\d+)\\s*,[^\\{]*?\\\"name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline
+                    );
+
+                    if (all == null || all.Count == 0)
+                    {
+                        return 0;
+                    }
+
+                    // First pass: exact case-insensitive match
+                    foreach (System.Text.RegularExpressions.Match item in all)
+                    {
+                        var candName = item.Groups[1].Value;
+                        var candIdStr = item.Groups[2].Value;
+                        if (string.Equals(candName, game.Name, System.StringComparison.OrdinalIgnoreCase) &&
+                            int.TryParse(candIdStr, out var candId) && candId > 0)
+                        {
+                            logger.Info($"Found App ID {candId} via exact name match for: {game.Name}");
+                            return candId;
+                        }
+                    }
+
+                    // Second pass: normalized fuzzy prefix + numeric constraints
+                    var normalizedTitle = NormalizeTitle(game.Name);
+                    var prefixLen = System.Math.Min(12, normalizedTitle.Length);
+                    var normalizedPrefix = normalizedTitle.Substring(0, prefixLen);
+                    var numbersInTitle = ExtractNumbers(game.Name);
+
+                    foreach (System.Text.RegularExpressions.Match item in all)
+                    {
+                        var candName = item.Groups[1].Value;
+                        var candIdStr = item.Groups[2].Value;
+                        if (!int.TryParse(candIdStr, out var candId) || candId <= 0)
+                        {
+                            continue;
+                        }
+
+                        var candNorm = NormalizeTitle(candName);
+
+                        // Require prefix containment
+                        if (!candNorm.Contains(normalizedPrefix))
+                        {
+                            continue;
+                        }
+
+                        // Require all numeric tokens from title to appear in candidate name
+                        bool numbersOk = true;
+                        if (numbersInTitle.Count > 0)
+                        {
+                            foreach (var num in numbersInTitle)
+                            {
+                                if (!candName.Contains(num))
+                                {
+                                    numbersOk = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!numbersOk)
+                        {
+                            continue;
+                        }
+
+                        logger.Info($"Found App ID {candId} via fuzzy match for: {game.Name} (candidate: {candName})");
+                        return candId;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                logger.Debug($"Error querying Steam API for {game?.Name}: {ex.Message}");
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Get App ID using fallback chain: direct ID → links → Steam API
+        /// </summary>
+        private async System.Threading.Tasks.Task<int> TryGetAppIdAsync(Game game)
+        {
+            // Primary: direct GameId (Steam games)
+            if (game != null && int.TryParse(game.GameId, out var directId) && directId > 0)
+            {
+                return directId;
+            }
+
+            // Respect setting: only attempt non-Steam matching if enabled
+            if (settings?.TryNonSteamMatching != true)
+            {
+                return 0;
+            }
+
+            // Secondary: extract from links
+            if (TryGetAppIdFromLinks(game, out var linkId))
+            {
+                return linkId;
+            }
+
+            // Tertiary: query Steam API by name
+            var apiId = await TryGetAppIdFromSteamApiAsync(game);
+            if (apiId > 0)
+            {
+                return apiId;
+            }
+
+            return 0;
+        }
+
         private void AddTagsAndLinksToGamesMissingData(IEnumerable<Game> games)
         {
             var missingGames = games?.Where(NeedsPluginUpdate).ToList() ?? new List<Game>();
@@ -266,9 +461,13 @@ namespace SteamDeckProtonDb
                                 break;
                             }
 
-                            if (!int.TryParse(game.GameId, out var appId) || appId <= 0)
+                            // Try to get App ID from multiple sources
+                            var appIdTask = TryGetAppIdAsync(game);
+                            appIdTask.Wait();
+                            var appId = appIdTask.Result;
+                            if (appId <= 0)
                             {
-                                progress.Text = $"[{processed + 1}/{targetGames.Count}] Skipping {game.Name} (no App ID)";
+                                progress.Text = $"[{processed + 1}/{targetGames.Count}] Skipping {game.Name} (no Steam App ID found)";
                                 progress.CurrentProgressValue = ++processed;
                                 continue;
                             }
@@ -361,17 +560,16 @@ namespace SteamDeckProtonDb
                         return;
                     }
 
-                    // Filter to games with valid Steam App IDs that need updating
+                    // Filter to games that need updating and have retrievable App IDs
+                    // Note: We'll filter for App IDs during processing since Steam API lookup is async
                     var gamesToUpdate = newlyAddedGames.Where(g =>
-                        !string.IsNullOrEmpty(g.GameId) &&
-                        int.TryParse(g.GameId, out var appId) &&
-                        appId > 0 &&
-                        NeedsPluginUpdate(g)
+                        NeedsPluginUpdate(g) &&
+                        (!string.IsNullOrEmpty(g.GameId) || (g.Links != null && g.Links.Any()))
                     ).ToList();
 
                     if (!gamesToUpdate.Any())
                     {
-                        logger.Debug($"Auto-fetch: {newlyAddedGames.Count} games added but none need metadata");
+                        logger.Debug($"Auto-fetch: {newlyAddedGames.Count} games added but none need metadata or have Steam IDs");
                         settings.LastAutoLibUpdateTime = DateTime.Now;
                         SavePluginSettings(settings);
                         return;
@@ -404,8 +602,13 @@ namespace SteamDeckProtonDb
                         {
                             try
                             {
-                                if (!int.TryParse(game.GameId, out var appId))
+                                // Try to get App ID from multiple sources
+                                var appIdTask = TryGetAppIdAsync(game);
+                                appIdTask.Wait();
+                                var appId = appIdTask.Result;
+                                if (appId <= 0)
                                 {
+                                    logger.Debug($"Auto-fetch: Could not determine Steam App ID for {game.Name}");
                                     continue;
                                 }
 

@@ -34,6 +34,12 @@
     <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrl">ProtonDB API URL:</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ApiUrlDesc">The API endpoint for fetching ProtonDB data. Use {0} as placeholder for AppId.</sys:String>
 
+    <!-- Non-Steam Matching -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_NonSteamMatchingHeader">Non-Steam Matching</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_TryNonSteamMatching">Try to match non-Steam games to Steam App IDs</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_AllowFuzzyNonSteamMatching">Allow fuzzy matching for non-Steam games</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_NonSteamMatchingDesc">Uses exact name first, then normalized fuzzy matching (strips "the", "a", "an" and requires numeric tokens to match).</sys:String>
+
     <!-- Rate Limiting -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_RateLimiting">Rate Limiting</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbRateLimitLabel">ProtonDB Rate Limit (ms):</sys:String>

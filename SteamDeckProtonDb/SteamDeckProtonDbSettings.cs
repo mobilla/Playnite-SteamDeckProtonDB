@@ -23,6 +23,8 @@ namespace SteamDeckProtonDb
         private int debugProgressDelayMs = 0; // Optional artificial delay per item for debugging progress UI
         private bool autoFetchOnLibraryUpdate = false; // Auto-fetch status when games are added to library
         private DateTime? lastAutoLibUpdateTime = null; // Track last time auto-fetch ran on library update
+        private bool tryNonSteamMatching = false; // Attempt to match non-Steam games to Steam App IDs
+        private bool allowFuzzyNonSteamMatching = false; // Allow fuzzy matching when trying non-Steam
         
         // Steam Deck tag/feature names (configurable)
         private string steamDeckTagPrefix = "steamdeck:";
@@ -60,6 +62,8 @@ namespace SteamDeckProtonDb
             } 
         }
         public DateTime? LastAutoLibUpdateTime { get => lastAutoLibUpdateTime; set => SetValue(ref lastAutoLibUpdateTime, value); }
+        public bool TryNonSteamMatching { get => tryNonSteamMatching; set => SetValue(ref tryNonSteamMatching, value); }
+        public bool AllowFuzzyNonSteamMatching { get => allowFuzzyNonSteamMatching; set => SetValue(ref allowFuzzyNonSteamMatching, value); }
         
         // Steam Deck tag/feature name properties
         public string SteamDeckTagPrefix { get => steamDeckTagPrefix; set => SetValue(ref steamDeckTagPrefix, value); }
@@ -141,6 +145,8 @@ namespace SteamDeckProtonDb
             DebugProgressDelayMs = source.DebugProgressDelayMs;
             AutoFetchOnLibraryUpdate = source.AutoFetchOnLibraryUpdate;
             LastAutoLibUpdateTime = source.LastAutoLibUpdateTime;
+            TryNonSteamMatching = source.TryNonSteamMatching;
+            AllowFuzzyNonSteamMatching = source.AllowFuzzyNonSteamMatching;
             
             // Load Steam Deck tag/feature names
             SteamDeckTagPrefix = source.SteamDeckTagPrefix;
