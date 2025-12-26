@@ -46,7 +46,19 @@ namespace SteamDeckProtonDb
         public int ProtonDbRateLimitMs { get => protonDbRateLimitMs; set => SetValue(ref protonDbRateLimitMs, value); }
         public int SteamStoreRateLimitMs { get => steamStoreRateLimitMs; set => SetValue(ref steamStoreRateLimitMs, value); }
         public int DebugProgressDelayMs { get => debugProgressDelayMs; set => SetValue(ref debugProgressDelayMs, value); }
-        public bool AutoFetchOnLibraryUpdate { get => autoFetchOnLibraryUpdate; set => SetValue(ref autoFetchOnLibraryUpdate, value); }
+        public bool AutoFetchOnLibraryUpdate 
+        { 
+            get => autoFetchOnLibraryUpdate; 
+            set 
+            { 
+                SetValue(ref autoFetchOnLibraryUpdate, value);
+                // Initialize timestamp when auto-fetch is enabled to avoid bulk-updating existing library
+                if (value)
+                {
+                    lastAutoLibUpdateTime = DateTime.Now;
+                }
+            } 
+        }
         public DateTime? LastAutoLibUpdateTime { get => lastAutoLibUpdateTime; set => SetValue(ref lastAutoLibUpdateTime, value); }
         
         // Steam Deck tag/feature name properties

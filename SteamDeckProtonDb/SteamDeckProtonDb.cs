@@ -337,10 +337,20 @@ namespace SteamDeckProtonDb
             {
                 try
                 {
-                    // Get games added since last auto-update (or all games if never run before)
+                    // Guard against first-run bulk update: if we've never tracked a previous run,
+                    // set the timestamp and skip processing to avoid touching the whole library.
+                    if (settings.LastAutoLibUpdateTime == null)
+                    {
+                        logger.Info("Auto-fetch: First run detected; skipping to avoid bulk update");
+                        settings.LastAutoLibUpdateTime = DateTime.Now;
+                        SavePluginSettings(settings);
+                        return;
+                    }
+
+                    // Get games added since last auto-update
                     var newlyAddedGames = PlayniteApi?.Database?.Games
                         .Where(g => g != null && g.Added.HasValue && 
-                                  (settings.LastAutoLibUpdateTime == null || g.Added > settings.LastAutoLibUpdateTime))
+                                  g.Added > settings.LastAutoLibUpdateTime)
                         .ToList() ?? new List<Game>();
 
                     if (!newlyAddedGames.Any())
@@ -368,6 +378,21 @@ namespace SteamDeckProtonDb
                     }
 
                     logger.Info($"Auto-fetch: Processing {gamesToUpdate.Count} newly added games (out of {newlyAddedGames.Count} total new games)");
+
+                    // If this would update a large number of games, ask for confirmation.
+                    const int bulkConfirmThreshold = 25;
+                    if (gamesToUpdate.Count >= bulkConfirmThreshold)
+                    {
+                        var message = $"This will update {gamesToUpdate.Count} games automatically. Proceed?";
+                        var result = PlayniteApi.Dialogs.ShowMessage(message, "Steam Deck & ProtonDB", System.Windows.MessageBoxButton.YesNo);
+                        if (result != System.Windows.MessageBoxResult.Yes)
+                        {
+                            logger.Info("Auto-fetch: User declined bulk update; skipping");
+                            settings.LastAutoLibUpdateTime = DateTime.Now;
+                            SavePluginSettings(settings);
+                            return;
+                        }
+                    }
 
                     var fetcher = BuildFetcher();
                     var processor = new MetadataProcessor(settings);
