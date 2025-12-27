@@ -57,6 +57,8 @@ namespace SteamDeckProtonDb
                             ?? "Add Steam Deck/ProtonDB tags and link";
             var missingOnlyLocalization = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_MissingOnly") 
                                       ?? "Add Steam Deck/ProtonDB tags and link (missing only)";
+            var updateAllLocalization = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_UpdateAll")
+                                      ?? "Update all games in library";
             var section = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_Section") 
                        ?? "@Steam Deck ProtonDB";
             
@@ -73,6 +75,12 @@ namespace SteamDeckProtonDb
                     Description = missingOnlyLocalization,
                     MenuSection = section,
                     Action = _ => AddTagsAndLinksToGamesMissingData(PlayniteApi?.MainView?.SelectedGames)
+                },
+                new MainMenuItem
+                {
+                    Description = updateAllLocalization,
+                    MenuSection = section,
+                    Action = _ => UpdateAllGamesInLibrary()
                 }
             };
         }
@@ -380,6 +388,33 @@ namespace SteamDeckProtonDb
 
             logger.Info($"Missing-only update - {missingGames.Count} of {games?.Count() ?? 0} selected games need data");
             AddTagsAndLinksToGames(missingGames);
+        }
+
+        private void UpdateAllGamesInLibrary()
+        {
+            var allGames = PlayniteApi?.Database?.Games?.ToList() ?? new List<Game>();
+            if (!allGames.Any())
+            {
+                PlayniteApi.Dialogs?.ShowMessage("No games in library.");
+                return;
+            }
+
+            var confirmMessage = PlayniteApi?.Resources?.GetString("LOC_SteamDeckProtonDb_MenuItem_UpdateAll_Confirm")
+                              ?? $"This will update all {allGames.Count} games in your library. This may take a while. Continue?";
+            
+            var result = PlayniteApi.Dialogs?.ShowMessage(
+                confirmMessage,
+                "Confirm Update All",
+                System.Windows.MessageBoxButton.YesNo
+            );
+
+            if (result != System.Windows.MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            logger.Info($"Update all games - processing {allGames.Count} games");
+            AddTagsAndLinksToGames(allGames);
         }
 
         private void AddTagsAndLinksToGames(IEnumerable<Game> games)
