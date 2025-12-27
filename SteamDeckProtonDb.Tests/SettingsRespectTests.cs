@@ -30,32 +30,16 @@ namespace SteamDeckProtonDb.Tests
                 return applied;
             }
 
-            // Categories filtering logic (same as real MetadataUpdater)
-            if (result.Categories != null && result.Categories.Count > 0)
-            {
-                foreach (var catName in result.Categories)
-                {
-                    var isDeckCategory = catName == "Steam Deck" || catName.StartsWith("Steam Deck -");
-                    var isProtonCategory = catName == "ProtonDB" || catName.StartsWith("ProtonDB -");
-
-                    if (isDeckCategory && settings?.EnableSteamDeckCategories != true)
-                    {
-                        continue;
-                    }
-
-                    if (isProtonCategory && settings?.EnableProtonDbCategories != true)
-                    {
-                        continue;
-                    }
-
-                    applied.CategoriesApplied.Add(catName);
-                }
-            }
-
             // Tags gating
             if (settings?.EnableTags == true && result.Tags != null && result.Tags.Count > 0)
             {
                 applied.TagsApplied.AddRange(result.Tags);
+            }
+
+            // Features gating
+            if (settings?.EnableFeatures == true && result.Features != null && result.Features.Count > 0)
+            {
+                applied.FeaturesApplied.AddRange(result.Features);
             }
 
             // ProtonDB link gating
@@ -70,8 +54,8 @@ namespace SteamDeckProtonDb.Tests
 
     public class ApplyResult
     {
-        public List<string> CategoriesApplied { get; set; } = new List<string>();
         public List<string> TagsApplied { get; set; } = new List<string>();
+        public List<string> FeaturesApplied { get; set; } = new List<string>();
         public string LinkApplied { get; set; }
     }
 
@@ -86,12 +70,10 @@ namespace SteamDeckProtonDb.Tests
                 new ProtonDbResult { Tier = ProtonDbTier.Gold, Url = "https://protondb.com/app/220" });
 
             Assert.IsNotNull(result);
-            Assert.IsTrue(result.Categories.Contains("Steam Deck"));
-            Assert.IsTrue(result.Categories.Contains("Steam Deck - Verified"));
-            Assert.IsTrue(result.Categories.Contains("ProtonDB"));
-            Assert.IsTrue(result.Categories.Contains("ProtonDB - Gold"));
             Assert.IsTrue(result.Tags.Contains("steamdeck:verified"));
             Assert.IsTrue(result.Tags.Contains("protondb:gold"));
+            Assert.IsTrue(result.Features.Contains("Steamdeck Verified"));
+            Assert.IsTrue(result.Features.Contains("Protondb Gold"));
             Assert.AreEqual("https://protondb.com/app/220", result.ProtonDbUrl);
         }
 
@@ -102,14 +84,14 @@ namespace SteamDeckProtonDb.Tests
             {
                 EnableTags = false,
                 EnableProtonDbLink = true,
-                EnableSteamDeckCategories = true,
-                EnableProtonDbCategories = true
+                EnableFeatures = true
             };
             var updater = new TestableMetadataUpdater(settings);
             var game = new Game("Test") { GameId = "220" };
             var mapping = new MappingResult
             {
                 Tags = new List<string> { "steamdeck:verified", "protondb:gold" },
+                Features = new List<string> { "Steamdeck Verified", "Protondb Gold" },
                 ProtonDbUrl = "https://protondb.com/app/220"
             };
 
@@ -126,14 +108,14 @@ namespace SteamDeckProtonDb.Tests
             {
                 EnableTags = true,
                 EnableProtonDbLink = false,
-                EnableSteamDeckCategories = true,
-                EnableProtonDbCategories = true
+                EnableFeatures = true
             };
             var updater = new TestableMetadataUpdater(settings);
             var game = new Game("Test") { GameId = "220" };
             var mapping = new MappingResult
             {
                 Tags = new List<string> { "steamdeck:verified" },
+                Features = new List<string> { "Steamdeck Verified" },
                 ProtonDbUrl = "https://protondb.com/app/220"
             };
 
@@ -143,55 +125,7 @@ namespace SteamDeckProtonDb.Tests
             Assert.AreEqual(1, result.TagsApplied.Count, "Tags should be applied when EnableTags is true");
         }
 
-        [Test]
-        public void MetadataUpdater_DoesNotApplySteamDeckCategories_WhenEnableSteamDeckCategoriesIsFalse()
-        {
-            var settings = new SteamDeckProtonDbSettings
-            {
-                EnableTags = true,
-                EnableProtonDbLink = true,
-                EnableSteamDeckCategories = false,
-                EnableProtonDbCategories = true
-            };
-            var updater = new TestableMetadataUpdater(settings);
-            var game = new Game("Test") { GameId = "220" };
-            var mapping = new MappingResult
-            {
-                Categories = new List<string> { "Steam Deck", "Steam Deck - Verified", "ProtonDB", "ProtonDB - Gold" }
-            };
 
-            var result = updater.ApplyDry(game, mapping);
-            
-            Assert.IsFalse(result.CategoriesApplied.Contains("Steam Deck"), "Steam Deck category should not be applied");
-            Assert.IsFalse(result.CategoriesApplied.Contains("Steam Deck - Verified"), "Steam Deck - Verified category should not be applied");
-            Assert.IsTrue(result.CategoriesApplied.Contains("ProtonDB"), "ProtonDB category should be applied");
-            Assert.IsTrue(result.CategoriesApplied.Contains("ProtonDB - Gold"), "ProtonDB - Gold category should be applied");
-        }
-
-        [Test]
-        public void MetadataUpdater_DoesNotApplyProtonDbCategories_WhenEnableProtonDbCategoriesIsFalse()
-        {
-            var settings = new SteamDeckProtonDbSettings
-            {
-                EnableTags = true,
-                EnableProtonDbLink = true,
-                EnableSteamDeckCategories = true,
-                EnableProtonDbCategories = false
-            };
-            var updater = new TestableMetadataUpdater(settings);
-            var game = new Game("Test") { GameId = "220" };
-            var mapping = new MappingResult
-            {
-                Categories = new List<string> { "Steam Deck", "Steam Deck - Verified", "ProtonDB", "ProtonDB - Gold" }
-            };
-
-            var result = updater.ApplyDry(game, mapping);
-            
-            Assert.IsTrue(result.CategoriesApplied.Contains("Steam Deck"), "Steam Deck category should be applied");
-            Assert.IsTrue(result.CategoriesApplied.Contains("Steam Deck - Verified"), "Steam Deck - Verified category should be applied");
-            Assert.IsFalse(result.CategoriesApplied.Contains("ProtonDB"), "ProtonDB category should not be applied");
-            Assert.IsFalse(result.CategoriesApplied.Contains("ProtonDB - Gold"), "ProtonDB - Gold category should not be applied");
-        }
 
         [Test]
         public void MetadataUpdater_RespectsAllSettings_WhenAllDisabled()
@@ -199,23 +133,22 @@ namespace SteamDeckProtonDb.Tests
             var settings = new SteamDeckProtonDbSettings
             {
                 EnableTags = false,
-                EnableProtonDbLink = false,
-                EnableSteamDeckCategories = false,
-                EnableProtonDbCategories = false
+                EnableFeatures = false,
+                EnableProtonDbLink = false
             };
             var updater = new TestableMetadataUpdater(settings);
             var game = new Game("Test") { GameId = "220" };
             var mapping = new MappingResult
             {
-                Categories = new List<string> { "Steam Deck", "Steam Deck - Verified", "ProtonDB", "ProtonDB - Gold" },
                 Tags = new List<string> { "steamdeck:verified", "protondb:gold" },
+                Features = new List<string> { "Steamdeck Verified", "Protondb Gold" },
                 ProtonDbUrl = "https://protondb.com/app/220"
             };
 
             var result = updater.ApplyDry(game, mapping);
 
-            Assert.AreEqual(0, result.CategoriesApplied.Count, "No categories should be applied");
             Assert.AreEqual(0, result.TagsApplied.Count, "No tags should be applied");
+            Assert.AreEqual(0, result.FeaturesApplied.Count, "No features should be applied");
             Assert.IsNull(result.LinkApplied, "No links should be applied");
         }
 
@@ -225,23 +158,22 @@ namespace SteamDeckProtonDb.Tests
             var settings = new SteamDeckProtonDbSettings
             {
                 EnableTags = true,
-                EnableProtonDbLink = true,
-                EnableSteamDeckCategories = true,
-                EnableProtonDbCategories = true
+                EnableFeatures = true,
+                EnableProtonDbLink = true
             };
             var updater = new TestableMetadataUpdater(settings);
             var game = new Game("Test") { GameId = "220" };
             var mapping = new MappingResult
             {
-                Categories = new List<string> { "Steam Deck", "Steam Deck - Verified", "ProtonDB", "ProtonDB - Gold" },
                 Tags = new List<string> { "steamdeck:verified", "protondb:gold" },
+                Features = new List<string> { "Steamdeck Verified", "Protondb Gold" },
                 ProtonDbUrl = "https://protondb.com/app/220"
             };
 
             var result = updater.ApplyDry(game, mapping);
 
-            Assert.AreEqual(4, result.CategoriesApplied.Count, "All categories should be applied");
             Assert.AreEqual(2, result.TagsApplied.Count, "All tags should be applied");
+            Assert.AreEqual(2, result.FeaturesApplied.Count, "All features should be applied");
             Assert.IsNotNull(result.LinkApplied, "Link should be applied");
         }
     }

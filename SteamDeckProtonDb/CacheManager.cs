@@ -10,7 +10,6 @@ namespace SteamDeckProtonDb
     {
         public T Data { get; set; }
         public DateTime CachedAt { get; set; }
-        public int TtlMinutes { get; set; }
 
         public bool IsExpired(int ttlMinutes) => DateTime.UtcNow > CachedAt.AddMinutes(ttlMinutes);
     }
@@ -96,7 +95,7 @@ namespace SteamDeckProtonDb
                 lock (lockObj)
                 {
                     var filePath = GetCacheFilePath(key);
-                    var entry = new CacheEntry<T> { Data = data, CachedAt = DateTime.UtcNow, TtlMinutes = 1440 }; // Default 24 hours
+                    var entry = new CacheEntry<T> { Data = data, CachedAt = DateTime.UtcNow };
                     
                     using (var ms = new MemoryStream())
                     {
@@ -162,7 +161,7 @@ namespace SteamDeckProtonDb
                 {
                     if (cache.TryGetValue(key, out var cachedObj) && cachedObj is CacheEntry<T> entry)
                     {
-                           if (!entry.IsExpired(ttlMinutes))
+                        if (!entry.IsExpired(ttlMinutes))
                         {
                             cachedData = entry.Data;
                             return true;
@@ -193,7 +192,7 @@ namespace SteamDeckProtonDb
             {
                 lock (lockObj)
                 {
-                    var entry = new CacheEntry<T> { Data = data, CachedAt = DateTime.UtcNow, TtlMinutes = 1440 };
+                    var entry = new CacheEntry<T> { Data = data, CachedAt = DateTime.UtcNow };
                     cache[key] = entry;
                 }
             }

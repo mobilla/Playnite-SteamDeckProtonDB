@@ -163,6 +163,23 @@ namespace SteamDeckProtonDb
             }
         }
 
+        /// <summary>
+        /// Recursively searches for a string value in a nested dictionary or array structure using the provided keys.
+        /// </summary>
+        /// <param name="obj">The object to search through. Can be a Dictionary&lt;string, object&gt; or an object array.</param>
+        /// <param name="keys">An array of key names to search for (case-insensitive matching).</param>
+        /// <returns>
+        /// The first matching string value found, or null if no match is found or if the input is invalid.
+        /// The method first searches for keys at the top level, then recursively searches nested dictionaries and arrays.
+        /// </returns>
+        /// <remarks>
+        /// The search algorithm:
+        /// 1. First attempts to find any of the provided keys at the current level (case-insensitive)
+        /// 2. If found and the value is a string, returns it immediately
+        /// 3. If found and the value is another type, attempts to convert it to string
+        /// 4. If not found at the current level, recursively searches all nested dictionaries and arrays
+        /// 5. Returns the first match found during the recursive search
+        /// </remarks>
         private static string GetNestedString(object obj, string[] keys)
         {
             if (obj == null || keys == null || keys.Length == 0) return null;

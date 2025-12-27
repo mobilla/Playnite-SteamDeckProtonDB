@@ -43,7 +43,7 @@ namespace SteamDeckProtonDb
             {
                 cacheManager = new InMemoryCacheManager();
             }
-            fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes);
+            fetcher = new MetadataFetcher(protonClient, deckSource, cacheManager, settings.CacheTtlMinutes, settings.EnableProtonDbSync, settings.EnableSteamDeckSync);
             processor = new MetadataProcessor(settings);
             updater = new MetadataUpdater(plugin, settings);
         }
@@ -202,18 +202,27 @@ namespace SteamDeckProtonDb
         private readonly ISteamDeckSource deckSource;
         private readonly ICacheManager cacheManager;
         private readonly int cacheTtlMinutes;
+        private readonly bool enableProtonDbSync;
+        private readonly bool enableSteamDeckSync;
         private static readonly Playnite.SDK.ILogger logger = Playnite.SDK.LogManager.GetLogger();
 
-        public MetadataFetcher(IProtonDbClient protonClient, ISteamDeckSource deckSource, ICacheManager cacheManager = null, int cacheTtlMinutes = 1440)
+        public MetadataFetcher(IProtonDbClient protonClient, ISteamDeckSource deckSource, ICacheManager cacheManager = null, int cacheTtlMinutes = 1440, bool enableProtonDbSync = true, bool enableSteamDeckSync = true)
         {
             this.protonClient = protonClient ?? throw new ArgumentNullException(nameof(protonClient));
             this.deckSource = deckSource ?? throw new ArgumentNullException(nameof(deckSource));
             this.cacheManager = cacheManager ?? new InMemoryCacheManager();
             this.cacheTtlMinutes = cacheTtlMinutes;
+            this.enableProtonDbSync = enableProtonDbSync;
+            this.enableSteamDeckSync = enableSteamDeckSync;
         }
 
         public async Task<ProtonDbResult> GetProtonDbSummaryAsync(int appId)
         {
+            if (!enableProtonDbSync)
+            {
+                return null;
+            }
+
             var cacheKey = $"proton_{appId}";
             if (cacheManager.TryGetCached<ProtonDbResult>(cacheKey, cacheTtlMinutes, out var cached))
             {
@@ -238,6 +247,11 @@ namespace SteamDeckProtonDb
 
         public async Task<SteamDeckCompatibility> GetSteamDeckCompatibilityAsync(int appId)
         {
+            if (!enableSteamDeckSync)
+            {
+                return SteamDeckCompatibility.Unknown;
+            }
+
             var cacheKey = $"deck_{appId}";
             if (cacheManager.TryGetCached<SteamDeckCompatibility>(cacheKey, cacheTtlMinutes, out var cached))
             {
@@ -259,20 +273,35 @@ namespace SteamDeckProtonDb
 
         public bool TryGetCachedProtonDbSummary(int appId, out ProtonDbResult cached)
         {
+            cached = null;
+            if (!enableProtonDbSync)
+            {
+                return false;
+            }
             var cacheKey = $"proton_{appId}";
             return cacheManager.TryGetCached<ProtonDbResult>(cacheKey, cacheTtlMinutes, out cached);
         }
 
         public bool TryGetCachedDeckCompatibility(int appId, out SteamDeckCompatibility cached)
         {
+            cached = SteamDeckCompatibility.Unknown;
+            if (!enableSteamDeckSync)
+            {
+                return false;
+            }
+
             var cacheKey = $"deck_{appId}";
             return cacheManager.TryGetCached<SteamDeckCompatibility>(cacheKey, cacheTtlMinutes, out cached);
         }
 
         public async Task<FetchResult> GetBothAsync(int appId)
         {
-            var protonTask = GetProtonDbSummaryAsync(appId);
-            var deckTask = GetSteamDeckCompatibilityAsync(appId);
+            Task<ProtonDbResult> protonTask = enableProtonDbSync
+                ? GetProtonDbSummaryAsync(appId)
+                : Task.FromResult<ProtonDbResult>(null);
+            Task<SteamDeckCompatibility> deckTask = enableSteamDeckSync
+                ? GetSteamDeckCompatibilityAsync(appId)
+                : Task.FromResult(SteamDeckCompatibility.Unknown);
             await Task.WhenAll(protonTask, deckTask).ConfigureAwait(false);
             return new FetchResult { Deck = deckTask.Result, Proton = protonTask.Result };
         }
@@ -297,14 +326,10 @@ namespace SteamDeckProtonDb
         {
             var result = new MappingResult();
 
-            // Map Steam Deck compatibility to categories and tags
+            // Map Steam Deck compatibility to tags/features (categories removed)
             switch (deck)
             {
                 case SteamDeckCompatibility.Verified:
-                    if (!result.Categories.Contains("Steam Deck"))
-                        result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Verified"))
-                        result.Categories.Add("Steam Deck - Verified");
                     var verifiedTag = settings.SteamDeckTagPrefix + settings.SteamDeckVerifiedTag;
                     if (!result.Tags.Contains(verifiedTag))
                         result.Tags.Add(verifiedTag);
@@ -314,10 +339,6 @@ namespace SteamDeckProtonDb
                     break;
 
                 case SteamDeckCompatibility.Playable:
-                    if (!result.Categories.Contains("Steam Deck"))
-                        result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Playable"))
-                        result.Categories.Add("Steam Deck - Playable");
                     var playableTag = settings.SteamDeckTagPrefix + settings.SteamDeckPlayableTag;
                     if (!result.Tags.Contains(playableTag))
                         result.Tags.Add(playableTag);
@@ -327,10 +348,6 @@ namespace SteamDeckProtonDb
                     break;
 
                 case SteamDeckCompatibility.Unsupported:
-                    if (!result.Categories.Contains("Steam Deck"))
-                        result.Categories.Add("Steam Deck");
-                    if (!result.Categories.Contains("Steam Deck - Unsupported"))
-                        result.Categories.Add("Steam Deck - Unsupported");
                     var unsupportedTag = settings.SteamDeckTagPrefix + settings.SteamDeckUnsupportedTag;
                     if (!result.Tags.Contains(unsupportedTag))
                         result.Tags.Add(unsupportedTag);
@@ -344,27 +361,17 @@ namespace SteamDeckProtonDb
                     break;
             }
 
-            // Map ProtonDB tier to categories and tags
+            // Map ProtonDB tier to tags/features (categories removed)
             var tier = proton?.Tier ?? ProtonDbTier.Unknown;
             if (tier != ProtonDbTier.Unknown)
             {
                 var tierName = GetProtonDbTierName(tier);
-                
-                if (!result.Categories.Contains("ProtonDB"))
-                    result.Categories.Add("ProtonDB");
-                
-                var tierCategory = $"ProtonDB - {tierName}";
-                if (!result.Categories.Contains(tierCategory))
-                    result.Categories.Add(tierCategory);
-                
                 var tierTag = $"{settings.ProtonDbTagPrefix}{tierName.ToLowerInvariant()}";
                 if (!result.Tags.Contains(tierTag))
                     result.Tags.Add(tierTag);
-                
                 var tierFeature = $"{settings.ProtonDbFeaturePrefix}{tierName}";
                 if (!result.Features.Contains(tierFeature))
                     result.Features.Add(tierFeature);
-                
                 result.ProtonDbUrl = proton?.Url;
             }
 
@@ -413,57 +420,18 @@ namespace SteamDeckProtonDb
             }
 
             logger.Debug($"Apply called for game '{game.Name}' - Tags enabled: {settings?.EnableTags}, Features enabled: {settings?.EnableFeatures}");
-            logger.Debug($"MappingResult has {result.Tags?.Count ?? 0} tags, {result.Features?.Count ?? 0} features, {result.Categories?.Count ?? 0} categories");
+            logger.Debug($"MappingResult has {result.Tags?.Count ?? 0} tags and {result.Features?.Count ?? 0} features");
 
             if (dryRun)
             {
                 // Log what would be done without modifying the game.
-                System.Diagnostics.Debug.WriteLine($"[DRY RUN] Would add categories: {string.Join(", ", result.Categories)}");
                 System.Diagnostics.Debug.WriteLine($"[DRY RUN] Would add tags: {string.Join(", ", result.Tags)}");
+                System.Diagnostics.Debug.WriteLine($"[DRY RUN] Would add features: {string.Join(", ", result.Features)}");
                 if (!string.IsNullOrEmpty(result.ProtonDbUrl))
                 {
                     System.Diagnostics.Debug.WriteLine($"[DRY RUN] Would add link to: {result.ProtonDbUrl}");
                 }
                 return;
-            }
-
-            // Add categories to the game.
-            if (result.Categories != null && result.Categories.Count > 0)
-            {
-                var dbCategories = plugin.PlayniteApi.Database.Categories;
-                foreach (var catName in result.Categories)
-                {
-                    // Check if this category should be added based on settings
-                    var isDeckCategory = catName == "Steam Deck" || catName.StartsWith("Steam Deck -");
-                    var isProtonCategory = catName == "ProtonDB" || catName.StartsWith("ProtonDB -");
-
-                    if (isDeckCategory && settings?.EnableSteamDeckCategories != true)
-                    {
-                        logger.Debug($"Skipping Steam Deck category '{catName}' - not enabled");
-                        continue;
-                    }
-
-                    if (isProtonCategory && settings?.EnableProtonDbCategories != true)
-                    {
-                        logger.Debug($"Skipping ProtonDB category '{catName}' - not enabled");
-                        continue;
-                    }
-
-                    // Find or create the category.
-                    var existingCat = dbCategories.FirstOrDefault(c => c.Name == catName);
-                    Category cat = existingCat;
-                    if (cat == null)
-                    {
-                        cat = new Category { Name = catName };
-                        dbCategories.Add(cat);
-                    }
-
-                    // Add to game if not already present.
-                    if (game.Categories != null && !game.Categories.Any(c => c.Id == cat.Id))
-                    {
-                        game.Categories.Add(cat);
-                    }
-                }
             }
 
             // Add tags to the game.
@@ -582,7 +550,6 @@ namespace SteamDeckProtonDb
 
     public class MappingResult
     {
-        public List<string> Categories { get; set; } = new List<string>();
         public List<string> Tags { get; set; } = new List<string>();
         public List<string> Features { get; set; } = new List<string>();
         public string ProtonDbUrl { get; set; }

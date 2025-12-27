@@ -3,12 +3,12 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <!-- Settings UI Labels -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckMetadata">Steam Deck Metadata</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableSteamDeckCategories">Enable Steam Deck Compatibility Categories</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckCategoriesDesc">When enabled, adds Steam Deck compatibility status (Verified/Playable/Unsupported) as categories to games.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_SteamDeckMetadataDesc">Adds Steam Deck compatibility as tags and features (no categories).</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableSteamDeckSync">Enable Steam Deck Sync</sys:String>
     
     <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbMetadata">ProtonDB Metadata</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbCategories">Enable ProtonDB Tier Categories</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbCategoriesDesc">When enabled, adds ProtonDB tier (Platinum/Gold/Silver/Bronze/etc.) as categories to games.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbSync">Enable ProtonDB Sync</sys:String>
+    <!-- Removed category toggles; ProtonDB now sets tags/features and optional link -->
     
     <sys:String x:Key="LOC_SteamDeckProtonDb_EnableProtonDbLink">Enable ProtonDB Link</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbLinkDesc">When enabled, adds a link to the ProtonDB game page in game details.</sys:String>
@@ -20,8 +20,10 @@
     <sys:String x:Key="LOC_SteamDeckProtonDb_FeaturesHeader">Features</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_EnableFeatures">Enable Features</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_FeaturesDesc">When enabled, adds features for compatibility status (e.g., Verified, Playable, Platinum).</sys:String>
-        <!-- ProtonDB Section Combined Description -->
-        <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbSectionDesc">Adds ProtonDB tier categories and optional link to ProtonDB page.</sys:String>
+
+    <!-- ProtonDB Section Combined Description -->
+    <sys:String x:Key="LOC_SteamDeckProtonDb_ProtonDbSectionDesc">Adds ProtonDB tags/features and optional link to ProtonDB page. Disable ProtonDB Sync to skip ProtonDB API calls.</sys:String>
+    <sys:String x:Key="LOC_SteamDeckProtonDb_AutoFetchDesc">Automatically fetch Steam Deck and ProtonDB status when new games are added to your library.</sys:String>
     
     <!-- Cache Settings -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_CacheSettings">Cache Settings</sys:String>
@@ -75,19 +77,7 @@
     <sys:String x:Key="LOC_SteamDeckProtonDb_PlausibleRating">Plausible:</sys:String>
     <sys:String x:Key="LOC_SteamDeckProtonDb_BorkedRating">Borked:</sys:String>
     
-    <!-- Category and Tag Names -->
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeck">Steam Deck</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckVerified">Steam Deck - Verified</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckPlayable">Steam Deck - Playable</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_SteamDeckUnsupported">Steam Deck - Unsupported</sys:String>
-    
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDb">ProtonDB</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbPlatinum">ProtonDB - Platinum</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbGold">ProtonDB - Gold</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbSilver">ProtonDB - Silver</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbBronze">ProtonDB - Bronze</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbPlausible">ProtonDB - Plausible</sys:String>
-    <sys:String x:Key="LOC_SteamDeckProtonDb_Category_ProtonDbBorked">ProtonDB - Borked</sys:String>
+    <!-- Removed category localization entries -->
     
     <!-- Links -->
     <sys:String x:Key="LOC_SteamDeckProtonDb_Link_ProtonDb">ProtonDB</sys:String>

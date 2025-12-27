@@ -10,8 +10,8 @@ namespace SteamDeckProtonDb
     {
         private readonly SteamDeckProtonDb plugin;
 
-        private bool enableSteamDeckCategories = true;
-        private bool enableProtonDbCategories = true;
+        private bool enableSteamDeckSync = true;
+        private bool enableProtonDbSync = true;
         private bool enableProtonDbLink = true;
         private bool enableTags = true;
         private bool enableFeatures = false;
@@ -106,8 +106,8 @@ namespace SteamDeckProtonDb
             }
         }
 
-        public bool EnableSteamDeckCategories { get => enableSteamDeckCategories; set => SetValue(ref enableSteamDeckCategories, value); }
-        public bool EnableProtonDbCategories { get => enableProtonDbCategories; set => SetValue(ref enableProtonDbCategories, value); }
+        public bool EnableSteamDeckSync { get => enableSteamDeckSync; set => SetValue(ref enableSteamDeckSync, value); }
+        public bool EnableProtonDbSync { get => enableProtonDbSync; set => SetValue(ref enableProtonDbSync, value); }
         public bool EnableProtonDbLink { get => enableProtonDbLink; set => SetValue(ref enableProtonDbLink, value); }
         public bool EnableTags { get => enableTags; set => SetValue(ref enableTags, value); }
         public bool EnableFeatures { get => enableFeatures; set => SetValue(ref enableFeatures, value); }
@@ -132,8 +132,8 @@ namespace SteamDeckProtonDb
 
         private void LoadFrom(SteamDeckProtonDbSettings source)
         {
-            EnableSteamDeckCategories = source.EnableSteamDeckCategories;
-            EnableProtonDbCategories = source.EnableProtonDbCategories;
+            EnableSteamDeckSync = source.EnableSteamDeckSync;
+            EnableProtonDbSync = source.EnableProtonDbSync;
             EnableProtonDbLink = source.EnableProtonDbLink;
             EnableTags = source.EnableTags;
             EnableFeatures = source.EnableFeatures;

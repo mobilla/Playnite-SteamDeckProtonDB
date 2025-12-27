@@ -94,7 +94,7 @@ namespace SteamDeckProtonDb
                 cacheManager = new InMemoryCacheManager();
             }
 
-            return new MetadataFetcher(protonClient, deckSource, cacheManager, currentSettings.CacheTtlMinutes);
+            return new MetadataFetcher(protonClient, deckSource, cacheManager, currentSettings.CacheTtlMinutes, currentSettings.EnableProtonDbSync, currentSettings.EnableSteamDeckSync);
         }
 
         private bool NeedsPluginUpdate(Game game)
@@ -104,45 +104,11 @@ namespace SteamDeckProtonDb
                 return false;
             }
 
-            bool needsDeckCategories = settings?.EnableSteamDeckCategories == true && !HasSteamDeckCategory(game);
-            bool needsProtonCategories = settings?.EnableProtonDbCategories == true && !HasProtonDbCategory(game);
             bool needsTags = settings?.EnableTags == true && !HasPluginTags(game);
             bool needsFeatures = settings?.EnableFeatures == true && !HasPluginFeatures(game);
             bool needsLink = settings?.EnableProtonDbLink == true && !HasProtonDbLink(game);
 
-            return needsDeckCategories || needsProtonCategories || needsTags || needsFeatures || needsLink;
-        }
-
-        private bool HasSteamDeckCategory(Game game)
-        {
-            var categories = game?.Categories;
-            if (categories == null)
-            {
-                return false;
-            }
-
-            return categories.Any(c =>
-                c != null &&
-                !string.IsNullOrEmpty(c.Name) &&
-                (string.Equals(c.Name, "Steam Deck", StringComparison.OrdinalIgnoreCase) ||
-                 c.Name.StartsWith("Steam Deck -", StringComparison.OrdinalIgnoreCase))
-            );
-        }
-
-        private bool HasProtonDbCategory(Game game)
-        {
-            var categories = game?.Categories;
-            if (categories == null)
-            {
-                return false;
-            }
-
-            return categories.Any(c =>
-                c != null &&
-                !string.IsNullOrEmpty(c.Name) &&
-                (string.Equals(c.Name, "ProtonDB", StringComparison.OrdinalIgnoreCase) ||
-                 c.Name.StartsWith("ProtonDB -", StringComparison.OrdinalIgnoreCase))
-            );
+            return needsTags || needsFeatures || needsLink;
         }
 
         private bool HasPluginTags(Game game)
