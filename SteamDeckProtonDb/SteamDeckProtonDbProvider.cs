@@ -414,6 +414,10 @@ namespace SteamDeckProtonDb
 
         public void Apply(Game game, MappingResult result, bool dryRun = false)
         {
+            // Applies the latest mapping to a Playnite game:
+            // 1) Optionally removes stale plugin-owned tags/features that are no longer desired.
+            // 2) Adds the mapped Steam Deck/ProtonDB tags, features, and ProtonDB link when enabled.
+            //    User-created metadata is left untouched; only this plugin's prefixes are managed.
             if (game == null || result == null)
             {
                 return;
@@ -434,19 +438,28 @@ namespace SteamDeckProtonDb
                 return;
             }
 
+            var desiredTags = result.Tags ?? new List<string>();
+            var desiredFeatures = result.Features ?? new List<string>();
+
+            if (settings?.EnableTags == true)
+            {
+                // Remove only plugin-owned tags (steamdeck:/protondb:) that are no longer desired; keep user tags intact
+                MetadataUpdaterHelpers.RemovePluginTags(game, plugin.PlayniteApi.Database.Tags, desiredTags, settings);
+            }
+
             // Add tags to the game.
-            if (result.Tags != null && result.Tags.Count > 0)
+            if (desiredTags.Count > 0)
             {
                 // Check if tags should be applied based on settings
                 if (settings?.EnableTags != true)
                 {
-                    logger.Debug($"Skipping {result.Tags.Count} tags - not enabled in settings");
+                    logger.Debug($"Skipping {desiredTags.Count} tags - not enabled in settings");
                 }
                 else
                 {
                     logger.Debug($"Adding tags - game.Tags is null: {game.TagIds == null}");
                     var dbTags = plugin.PlayniteApi.Database.Tags;
-                    foreach (var tagName in result.Tags)
+                    foreach (var tagName in desiredTags)
                     {
                         // Find or create the tag.
                         var existingTag = dbTags.FirstOrDefault(t => t.Name == tagName);
@@ -468,19 +481,25 @@ namespace SteamDeckProtonDb
                 }
             }
 
+            if (settings?.EnableFeatures == true)
+            {
+                // Remove only plugin-owned features (Steamdeck*/Protondb*) that are no longer desired; keep user features intact
+                MetadataUpdaterHelpers.RemovePluginFeatures(game, plugin.PlayniteApi.Database.Features, desiredFeatures, settings);
+            }
+
             // Add features to the game.
-            if (result.Features != null && result.Features.Count > 0)
+            if (desiredFeatures.Count > 0)
             {
                 // Check if features should be applied based on settings
                 if (settings?.EnableFeatures != true)
                 {
-                    logger.Debug($"Skipping {result.Features.Count} features - not enabled in settings");
+                    logger.Debug($"Skipping {desiredFeatures.Count} features - not enabled in settings");
                 }
                 else
                 {
                     logger.Debug($"Adding features - game.FeatureIds is null: {game.FeatureIds == null}");
                     var dbFeatures = plugin.PlayniteApi.Database.Features;
-                    foreach (var featureName in result.Features)
+                    foreach (var featureName in desiredFeatures)
                     {
                         // Find or create the feature.
                         var existingFeature = dbFeatures.FirstOrDefault(f => f.Name == featureName);
@@ -520,6 +539,109 @@ namespace SteamDeckProtonDb
                     logger.Debug($"Added ProtonDB link to game");
                 }
             }
+        }
+    }
+
+    internal static class MetadataUpdaterHelpers
+    {
+        internal static void RemovePluginTags(Game game, IEnumerable<Tag> allTags, IEnumerable<string> desiredTags, SteamDeckProtonDbSettings settings)
+        {
+            if (game?.TagIds == null || !game.TagIds.Any() || allTags == null)
+            {
+                return;
+            }
+
+            var desired = new HashSet<string>(desiredTags ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var tagLookup = allTags.Where(t => t != null).ToDictionary(t => t.Id, t => t);
+            var removal = new List<Guid>();
+
+            foreach (var tagId in game.TagIds.ToList())
+            {
+                if (!tagLookup.TryGetValue(tagId, out var tag) || string.IsNullOrEmpty(tag.Name))
+                {
+                    continue;
+                }
+
+                // Only strip plugin tags when they don't appear in the freshly computed desired set
+                if (IsPluginTag(tag, settings) && !desired.Contains(tag.Name))
+                {
+                    removal.Add(tagId);
+                }
+            }
+
+            if (removal.Count > 0)
+            {
+                game.TagIds = game.TagIds.Except(removal).ToList();
+            }
+        }
+
+        private static bool IsPluginTag(Tag tag, SteamDeckProtonDbSettings settings)
+        {
+            var prefixes = new[]
+            {
+                settings?.SteamDeckTagPrefix ?? "steamdeck:",
+                settings?.ProtonDbTagPrefix ?? "protondb:"
+            }
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .ToList();
+
+            if (!prefixes.Any())
+            {
+                return false; // No prefixes configured means we should not treat any tag as plugin-owned
+            }
+
+            return prefixes.Any(p => tag.Name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        }
+
+        internal static void RemovePluginFeatures(Game game, IEnumerable<GameFeature> allFeatures, IEnumerable<string> desiredFeatures, SteamDeckProtonDbSettings settings)
+        {
+            if (game?.FeatureIds == null || !game.FeatureIds.Any() || allFeatures == null)
+            {
+                return;
+            }
+
+            var desired = new HashSet<string>(desiredFeatures ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var featureLookup = allFeatures.Where(f => f != null).ToDictionary(f => f.Id, f => f);
+            var removal = new List<Guid>();
+
+            foreach (var featureId in game.FeatureIds.ToList())
+            {
+                if (!featureLookup.TryGetValue(featureId, out var feature) || string.IsNullOrEmpty(feature.Name))
+                {
+                    continue;
+                }
+
+                // Only strip plugin features when they don't appear in the freshly computed desired set
+                if (IsPluginFeature(feature, settings) && !desired.Contains(feature.Name))
+                {
+                    removal.Add(featureId);
+                }
+            }
+
+            if (removal.Count > 0)
+            {
+                game.FeatureIds = game.FeatureIds.Except(removal).ToList();
+            }
+        }
+
+        private static bool IsPluginFeature(GameFeature feature, SteamDeckProtonDbSettings settings)
+        {
+            var protonPrefix = settings?.ProtonDbFeaturePrefix ?? "Protondb ";
+            var deckFeatures = new[]
+            {
+                settings?.SteamDeckVerifiedFeature ?? "Steamdeck Verified",
+                settings?.SteamDeckPlayableFeature ?? "Steamdeck Playable",
+                settings?.SteamDeckUnsupportedFeature ?? "Steamdeck Unsupported"
+            }
+            .Where(df => !string.IsNullOrWhiteSpace(df))
+            .ToList();
+
+            var protonPrefixActive = !string.IsNullOrWhiteSpace(protonPrefix);
+
+            var isDeckFeature = deckFeatures.Any(df => feature.Name.Equals(df, StringComparison.OrdinalIgnoreCase));
+            var isProtonFeature = protonPrefixActive && feature.Name.StartsWith(protonPrefix, StringComparison.OrdinalIgnoreCase);
+
+            return isDeckFeature || isProtonFeature;
         }
     }
 
