@@ -1,4 +1,5 @@
 # Project Rules
+- **Quick context**: See [agents.md](agents.md) for project overview and architecture
 - Use the restore-and-build.ps1 script in the SteamDeckProtonDb directory to build and test the project. Run it with: `./SteamDeckProtonDb/restore-and-build.ps1`
 - The main code exists in the SteamDeckProtonDb directory. Tests exist in the SteamDeckProtonDb.Tests directory.
 - The restore-and-build.ps1 script automatically restores NuGet packages, builds the main project, builds the test project, and runs all tests.
