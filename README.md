@@ -14,7 +14,7 @@ A Playnite plugin that fetches Steam Deck compatibility and ProtonDB tier inform
 
 ## Installation
 
-1. Download the latest release from the [Releases](https://github.com/yourusername/playnite_protondb/releases) page
+1. Download the latest release from the [Releases](https://github.com/mobilla/Playnite-SteamDeckProtonDB/releases) page
 2. Extract the contents to your Playnite extensions folder:
    - Windows: `%APPDATA%\Playnite\Extensions\SteamDeckProtonDb`
    - Linux: `~/.config/Playnite/Extensions/SteamDeckProtonDb`
@@ -169,7 +169,7 @@ Both APIs are public and free to use.
 
 ## Contributing
 
-Contributions are welcome! Please submit issues and pull requests to the [GitHub repository](https://github.com/yourusername/playnite_protondb).
+Contributions are welcome! Please submit issues and pull requests to the [GitHub repository](https://github.com/mobilla/Playnite-SteamDeckProtonDB).
 
 ## License
 

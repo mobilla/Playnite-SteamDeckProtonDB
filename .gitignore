@@ -44,6 +44,8 @@ packages/
 # Build output
 publish/
 PublishProfiles/
+*.pext
+*.zip
 
 # Rider
 .idea/
