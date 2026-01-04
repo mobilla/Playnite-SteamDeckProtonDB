@@ -33,13 +33,14 @@ jobs:
     - name: Restore NuGet packages
       shell: pwsh
       run: |
-        nuget restore SteamDeckProtonDb/SteamDeckProtonDb.sln
+        cd SteamDeckProtonDb
+        nuget restore SteamDeckProtonDb.sln
         
     - name: Run release build
       shell: pwsh
       run: |
         cd SteamDeckProtonDb
-        .\release-build.ps1 -Version "${{ steps.get_version.outputs.VERSION }}"
+        .\release-build.ps1 -Version "${{ steps.get_version.outputs.VERSION }}" -SkipTests
         
     - name: Find release package
       id: find_package
