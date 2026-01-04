@@ -1,8 +1,8 @@
 AddonId: SteamDeckProtonDb_78f86cf5-abfd-47e9-b753-6b81c29132ed
 Packages:
-  - Version:0.0.15
+  - Version: 0.0.15
     RequiredApiVersion: 6.2.0
-    ReleaseDate:2026-01-04
-    PackageUrl:https://github.com/mobilla/Playnite-SteamDeckProtonDB/releases/download/v0.0.15/SteamDeckProtonDb_78f86cf5-abfd-47e9-b753-6b81c29132ed_1_0_0.pext
+    ReleaseDate: 2026-01-04
+    PackageUrl: https://github.com/mobilla/Playnite-SteamDeckProtonDB/releases/download/v0.0.15/SteamDeckProtonDb_78f86cf5-abfd-47e9-b753-6b81c29132ed_1_0_0.pext
     Changelog:
       - Initial release with Steam Deck compatibility categories, ProtonDB tiers, and caching.
