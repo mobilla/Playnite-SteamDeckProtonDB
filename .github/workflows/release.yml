@@ -19,7 +19,7 @@ jobs:
         dotnet-version: '6.0.x'
         
     - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1
+      uses: NuGet/setup-nuget@v2
         
     - name: Extract version from tag
       id: get_version
@@ -33,8 +33,9 @@ jobs:
     - name: Restore NuGet packages
       shell: pwsh
       run: |
-        # Restore packages using NuGet.config at repo root
-        nuget restore SteamDeckProtonDb\SteamDeckProtonDb.sln -ConfigFile NuGet.config -PackagesDirectory SteamDeckProtonDb\packages
+        cd SteamDeckProtonDb
+        # Use nuget restore with explicit packages directory (same as local build script)
+        nuget restore SteamDeckProtonDb.sln -PackagesDirectory packages
         
     - name: Run release build
       shell: pwsh
