@@ -69,6 +69,22 @@ jobs:
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         echo "Building version: $version"
     
+    - name: Detect source branch
+      id: get_branch
+      shell: pwsh
+      run: |
+        # Get the branch that contains this tag
+        $branch = git branch -r --contains ${{ github.ref }} | Where-Object { $_ -match 'origin/' } | Select-Object -First 1
+        if ($branch) {
+          $branch = $branch.Trim() -replace 'origin/', ''
+          echo "BRANCH=$branch" >> $env:GITHUB_OUTPUT
+          Write-Host "Tag is on branch: $branch"
+        } else {
+          # Fallback to main if detection fails
+          echo "BRANCH=main" >> $env:GITHUB_OUTPUT
+          Write-Host "Could not detect branch, defaulting to main"
+        }
+    
     - name: Restore NuGet packages
       shell: pwsh
       run: |
@@ -103,11 +119,14 @@ jobs:
         $version = "${{ steps.get_version.outputs.VERSION }}"
         $packageName = "${{ steps.find_package.outputs.PACKAGE_NAME }}"
         $repo = "${{ github.repository }}"
+        $branch = "${{ steps.get_branch.outputs.BRANCH }}"
         $releaseDate = (Get-Date).ToString('yyyy-MM-dd')
         $addonPath = "docs/addon-manifests/SteamDeckProtonDb-addon.yaml"
         $installerPath = "docs/addon-manifests/SteamDeckProtonDb-installer.yaml"
         $packageUrl = "https://github.com/$repo/releases/download/v$version/$packageName"
-        $installerUrl = "https://raw.githubusercontent.com/$repo/main/$installerPath"
+        $installerUrl = "https://raw.githubusercontent.com/$repo/$branch/$installerPath"
+        
+        Write-Host "Updating manifests for version $version on branch $branch"
 
         # Update extension.yaml version
         $extensionContent = Get-Content "SteamDeckProtonDb/extension.yaml" -Raw
@@ -136,11 +155,22 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Commit updated manifests back to main
+    - name: Commit updated manifests back to source branch
       shell: pwsh
       run: |
+        $branch = "${{ steps.get_branch.outputs.BRANCH }}"
+        Write-Host "Committing manifests back to branch: $branch"
+        
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Fetch latest branch to avoid rejection due to updates during workflow
+        git fetch origin $branch
+        
+        # Checkout source branch (currently in detached HEAD at tag)
+        git checkout $branch
+        
+        # Re-apply manifest updates (they were staged before checkout)
         git add docs/addon-manifests/*.yaml SteamDeckProtonDb/extension.yaml
         
         # Only commit if there are changes
@@ -148,8 +178,8 @@ jobs:
           Write-Host "No manifest changes to commit"
         } else {
           git commit -m "chore: update manifests for v${{ steps.get_version.outputs.VERSION }} [skip ci]"
-          git push origin HEAD:main
-          Write-Host "Manifests committed and pushed to main"
+          git push origin $branch
+          Write-Host "Manifests committed and pushed to $branch"
         }
 
     - name: Verify manifests with Toolbox
