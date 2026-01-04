@@ -85,7 +85,9 @@ jobs:
       run: |
         $pextFile = Get-ChildItem -Path "releases" -Filter "*.pext" | Select-Object -First 1
         if ($pextFile) {
-          echo "PACKAGE_PATH=$($pextFile.FullName)" >> $env:GITHUB_OUTPUT
+          # Use forward slashes to keep softprops/action-gh-release happy on Windows
+          $packagePath = $pextFile.FullName -replace '\\','/'
+          echo "PACKAGE_PATH=$packagePath" >> $env:GITHUB_OUTPUT
           echo "PACKAGE_NAME=$($pextFile.Name)" >> $env:GITHUB_OUTPUT
         } else {
           Write-Error "No .pext file found in releases directory"
