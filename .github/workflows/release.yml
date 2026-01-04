@@ -96,6 +96,34 @@ jobs:
           Write-Error "No .pext file found in releases directory"
           exit 1
         }
+
+    - name: Update manifests with release info
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $packageName = "${{ steps.find_package.outputs.PACKAGE_NAME }}"
+        $repo = "${{ github.repository }}"
+        $releaseDate = (Get-Date).ToString('yyyy-MM-dd')
+        $addonPath = "docs/addon-manifests/SteamDeckProtonDb-addon.yaml"
+        $installerPath = "docs/addon-manifests/SteamDeckProtonDb-installer.yaml"
+        $packageUrl = "https://github.com/$repo/releases/download/v$version/$packageName"
+        $installerUrl = "https://raw.githubusercontent.com/$repo/main/$installerPath"
+
+        # Update extension.yaml version
+        (Get-Content "SteamDeckProtonDb/extension.yaml") -replace '^(Version:\s*).*','$1'+$version |
+          Set-Content "SteamDeckProtonDb/extension.yaml" -Encoding UTF8
+
+        # Update installer manifest fields
+        $installer = Get-Content $installerPath
+        $installer = $installer -replace '(?<=- Version:\s*).*', $version
+        $installer = $installer -replace '(?<=ReleaseDate:\s*).*', $releaseDate
+        $installer = $installer -replace '(?<=PackageUrl:\s*).*', $packageUrl
+        Set-Content $installerPath -Value $installer -Encoding UTF8
+
+        # Update addon manifest to point to installer on main
+        $addon = Get-Content $addonPath
+        $addon = $addon -replace '(?<=InstallerManifestUrl:\s*).*', $installerUrl
+        Set-Content $addonPath -Value $addon -Encoding UTF8
         
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -106,3 +134,39 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit updated manifests back to main
+      shell: pwsh
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/addon-manifests/*.yaml SteamDeckProtonDb/extension.yaml
+        
+        # Only commit if there are changes
+        if (git diff --staged --quiet) {
+          Write-Host "No manifest changes to commit"
+        } else {
+          git commit -m "chore: update manifests for v${{ steps.get_version.outputs.VERSION }} [skip ci]"
+          git push origin HEAD:main
+          Write-Host "Manifests committed and pushed to main"
+        }
+
+    - name: Verify manifests with Toolbox
+      shell: pwsh
+      run: |
+        Write-Host "Waiting 10 seconds for GitHub to propagate release assets..."
+        Start-Sleep -Seconds 10
+        
+        Write-Host "Verifying installer manifest..."
+        toolbox.exe verify installer docs/addon-manifests/SteamDeckProtonDb-installer.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "Installer manifest verification failed. This may be due to asset propagation delay."
+        }
+        
+        Write-Host "Verifying addon manifest..."
+        toolbox.exe verify addon docs/addon-manifests/SteamDeckProtonDb-addon.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "Addon manifest verification failed. This may be due to asset propagation delay."
+        }
+        
+        Write-Host "Manifest verification completed. Check warnings above if any."
