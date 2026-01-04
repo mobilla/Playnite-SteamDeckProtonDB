@@ -33,8 +33,8 @@ jobs:
     - name: Restore NuGet packages
       shell: pwsh
       run: |
-        cd SteamDeckProtonDb
-        nuget restore SteamDeckProtonDb.sln
+        # Restore packages using NuGet.config at repo root
+        nuget restore SteamDeckProtonDb\SteamDeckProtonDb.sln -ConfigFile NuGet.config -PackagesDirectory SteamDeckProtonDb\packages
         
     - name: Run release build
       shell: pwsh
