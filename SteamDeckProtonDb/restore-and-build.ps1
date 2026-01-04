@@ -67,3 +67,5 @@ try {
 } finally {
     Pop-Location
 }
+
+Write-Host "Build and test completed successfully. Manifest verification skipped for local builds."
