@@ -3,7 +3,7 @@ Type: MetadataProvider
 Name: Steam Deck ProtonDB Metadata Provider
 Author: mobilla
 ShortDescription: Adds Steam Deck verification and ProtonDB compatibility metadata, categories, and tags.
-InstallerManifestUrl:https://raw.githubusercontent.com/mobilla/Playnite-SteamDeckProtonDB/main/docs/addon-manifests/SteamDeckProtonDb-installer.yaml
+InstallerManifestUrl: https://raw.githubusercontent.com/mobilla/Playnite-SteamDeckProtonDB/main/docs/addon-manifests/SteamDeckProtonDb-installer.yaml
 SourceUrl: https://github.com/mobilla/Playnite-SteamDeckProtonDB
 Description: >-
   Playnite metadata provider that fetches Steam Deck verification status and ProtonDB tiers, applies categories and
