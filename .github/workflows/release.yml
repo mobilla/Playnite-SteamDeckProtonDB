@@ -88,22 +88,6 @@ jobs:
           Write-Host "Could not detect branch, defaulting to main"
         }
     
-    - name: Detect source branch
-      id: get_branch
-      shell: pwsh
-      run: |
-        # Get the branch that contains this tag
-        $branch = git branch -r --contains ${{ github.ref }} | Where-Object { $_ -match 'origin/' } | Select-Object -First 1
-        if ($branch) {
-          $branch = $branch.Trim() -replace 'origin/', ''
-          echo "BRANCH=$branch" >> $env:GITHUB_OUTPUT
-          Write-Host "Tag is on branch: $branch"
-        } else {
-          # Fallback to main if detection fails
-          echo "BRANCH=main" >> $env:GITHUB_OUTPUT
-          Write-Host "Could not detect branch, defaulting to main"
-        }
-    
     - name: Restore NuGet packages
       shell: pwsh
       run: |
