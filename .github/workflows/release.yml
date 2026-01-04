@@ -26,28 +26,29 @@ jobs:
       run: |
         $toolboxDir = "${{ runner.temp }}\playnite"
         New-Item -ItemType Directory -Path $toolboxDir -Force | Out-Null
-        
-        # Get latest Playnite release
+
+        # Get latest Playnite release metadata
         $releaseUrl = "https://api.github.com/repos/JosefNemec/Playnite/releases/latest"
         $release = Invoke-RestMethod -Uri $releaseUrl
-        
-        # Find the portable release asset
-        $asset = $release.assets | Where-Object { $_.name -like "*portable*" -or $_.name -like "*.zip" } | Select-Object -First 1
+
+        # Prefer the portable 7z asset (matches Playnite's release packaging)
+        $asset = $release.assets | Where-Object { $_.name -match '\.7z$' } | Select-Object -First 1
         if (-not $asset) {
-          Write-Error "Could not find Playnite release package"
+          Write-Error "Could not find Playnite portable .7z asset"
           exit 1
         }
-        
+
         $downloadUrl = $asset.browser_download_url
-        $zipPath = Join-Path $toolboxDir "playnite.zip"
-        
+        $archivePath = Join-Path $toolboxDir $asset.name
+
         Write-Host "Downloading Playnite from: $downloadUrl"
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
-        
-        Write-Host "Extracting Playnite..."
-        Expand-Archive -Path $zipPath -DestinationPath $toolboxDir -Force
-        
-        # Toolbox.exe is inside the extracted Playnite folder
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath -ErrorAction Stop
+
+        # Extract with 7zip (available on windows-latest image)
+        $sevenZip = Join-Path ${env:ProgramFiles} "7-Zip\7z.exe"
+        if (-not (Test-Path $sevenZip)) { $sevenZip = "7z" }
+        & $sevenZip x $archivePath "-o$toolboxDir" -y
+
         $toolboxPath = Get-ChildItem -Path $toolboxDir -Filter Toolbox.exe -Recurse -File | Select-Object -First 1
         if (-not $toolboxPath) {
           Write-Error "Toolbox.exe not found after extraction"
