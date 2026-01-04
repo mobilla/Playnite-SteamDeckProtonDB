@@ -29,11 +29,12 @@ function Update-Yaml {
     param([string]$Path, [hashtable]$Updates)
     $content = Get-Content $Path -Raw
     foreach ($key in $Updates.Keys) {
-        $pattern = "^($key):\s*(.+)$"
-        $replacement = "`$1: $($Updates[$key])"
+        $pattern = "(?m)^$key:.*"
+        $replacement = "$key`: $($Updates[$key])"
         $content = $content -replace $pattern, $replacement
     }
     Set-Content -Path $Path -Value $content -Encoding UTF8 -NoNewline
+    Write-Host "Updated $Path - New values: $($Updates.Keys -join ', ')"
 }
 
 function Validate-Files {
@@ -170,6 +171,16 @@ if ($Version) {
     Write-Host "Updating version to: $Version" -ForegroundColor Yellow
     Update-Yaml -Path $extensionYaml -Updates @{ Version = $Version }
     $currentVersion = $Version
+    
+    # Verify the update was successful
+    $updatedYaml = Read-Yaml $extensionYaml
+    $verifyVersion = $updatedYaml['Version']
+    Write-Host "Verified extension.yaml version: $verifyVersion" -ForegroundColor Green
+    
+    if ($verifyVersion -ne $Version) {
+        Write-Error "Failed to update extension.yaml version. Expected: $Version, Got: $verifyVersion"
+        exit 1
+    }
 }
 
 # Clean previous builds

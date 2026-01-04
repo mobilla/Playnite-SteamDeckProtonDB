@@ -69,6 +69,7 @@ jobs:
         # Strip pre-release suffix (e.g., -rc, -alpha, -beta) for manifest versions
         $manifestVersion = $tag -replace '^v', '' -replace '-.*$', ''
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "MANIFEST_VERSION=$manifestVersion" >> $env:GITHUB_OUTPUT
         echo "Building version: $version"
         echo "Manifest version (v and pre-release stripped): $manifestVersion"
     
@@ -120,6 +121,7 @@ jobs:
       shell: pwsh
       run: |
         $version = "${{ steps.get_version.outputs.VERSION }}"
+        $manifestVersion = "${{ steps.get_version.outputs.MANIFEST_VERSION }}"
         $packageName = "${{ steps.find_package.outputs.PACKAGE_NAME }}"
         $repo = "${{ github.repository }}"
         $branch = "${{ steps.get_branch.outputs.BRANCH }}"
@@ -129,16 +131,16 @@ jobs:
         $packageUrl = "https://github.com/$repo/releases/download/v$version/$packageName"
         $installerUrl = "https://raw.githubusercontent.com/$repo/$branch/$installerPath"
         
-        Write-Host "Updating manifests for version $version on branch $branch"
+        Write-Host "Updating manifests for release $version (manifest version: $manifestVersion) on branch $branch"
 
-        # Update extension.yaml version (ensure space after colon)
+        # Update extension.yaml version with clean version (no pre-release suffix)
         $extensionContent = Get-Content "SteamDeckProtonDb/extension.yaml" -Raw
-        $extensionContent = $extensionContent -replace '(?m)^Version:.*', "Version: $version"
+        $extensionContent = $extensionContent -replace '(?m)^Version:.*', "Version: $manifestVersion"
         Set-Content "SteamDeckProtonDb/extension.yaml" -Value $extensionContent -Encoding UTF8 -NoNewline
 
-        # Update installer manifest fields (preserve YAML formatting with space after colon)
+        # Update installer manifest fields with clean version (preserve YAML formatting)
         $installerContent = Get-Content $installerPath -Raw
-        $installerContent = $installerContent -replace '(?m)^(\s*)- Version:.*', "`$1- Version: $version"
+        $installerContent = $installerContent -replace '(?m)^(\s*)- Version:.*', "`$1- Version: $manifestVersion"
         $installerContent = $installerContent -replace '(?m)^(\s*)ReleaseDate:.*', "`$1ReleaseDate: $releaseDate"
         $installerContent = $installerContent -replace '(?m)^(\s*)PackageUrl:.*', "`$1PackageUrl: $packageUrl"
         Set-Content $installerPath -Value $installerContent -Encoding UTF8 -NoNewline
