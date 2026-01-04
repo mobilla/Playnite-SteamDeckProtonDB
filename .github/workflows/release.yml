@@ -26,6 +26,11 @@ jobs:
         $version = $tag -replace '^v', ''
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         echo "Building version: $version"
+    
+    - name: Restore NuGet packages
+      shell: pwsh
+      run: |
+        dotnet restore SteamDeckProtonDb/SteamDeckProtonDb.sln
         
     - name: Run release build
       shell: pwsh

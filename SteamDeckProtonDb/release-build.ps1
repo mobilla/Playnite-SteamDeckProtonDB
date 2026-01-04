@@ -172,6 +172,18 @@ if ($Version) {
     $currentVersion = $Version
 }
 
+# Clean previous builds
+Write-Host "`nCleaning previous builds..." -ForegroundColor Cyan
+dotnet clean $proj -c Release 2>&1 | Out-Null
+
+# Restore NuGet packages
+Write-Host "Restoring NuGet packages..." -ForegroundColor Cyan
+dotnet restore $solution
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "dotnet restore failed with exit code $LASTEXITCODE"
+    exit 1
+}
+
 # Run tests unless skipped
 if (-not $SkipTests) {
     Write-Host "`nRunning tests..." -ForegroundColor Cyan
@@ -186,18 +198,6 @@ if (-not $SkipTests) {
     } finally {
         Pop-Location
     }
-}
-
-# Clean previous builds
-Write-Host "`nCleaning previous builds..." -ForegroundColor Cyan
-dotnet clean $proj -c Release 2>&1 | Out-Null
-
-# Restore NuGet packages
-Write-Host "Restoring NuGet packages..." -ForegroundColor Cyan
-dotnet restore $solution
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "dotnet restore failed with exit code $LASTEXITCODE"
-    exit 1
 }
 
 # Build in Release configuration
