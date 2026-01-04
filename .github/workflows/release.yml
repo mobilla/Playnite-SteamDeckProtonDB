@@ -1,0 +1,108 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+        
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+        
+    - name: Download Playnite Toolbox
+      shell: pwsh
+      run: |
+        $toolboxDir = "${{ runner.temp }}\playnite"
+        New-Item -ItemType Directory -Path $toolboxDir -Force | Out-Null
+
+        # Get latest Playnite release metadata
+        $releaseUrl = "https://api.github.com/repos/JosefNemec/Playnite/releases/latest"
+        $release = Invoke-RestMethod -Uri $releaseUrl
+
+        # Prefer the portable 7z asset (matches Playnite's release packaging)
+        $asset = $release.assets | Where-Object { $_.name -match '\.7z$' } | Select-Object -First 1
+        if (-not $asset) {
+          Write-Error "Could not find Playnite portable .7z asset"
+          exit 1
+        }
+
+        $downloadUrl = $asset.browser_download_url
+        $archivePath = Join-Path $toolboxDir $asset.name
+
+        Write-Host "Downloading Playnite from: $downloadUrl"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath -ErrorAction Stop
+
+        # Extract with 7zip (available on windows-latest image)
+        $sevenZip = Join-Path ${env:ProgramFiles} "7-Zip\7z.exe"
+        if (-not (Test-Path $sevenZip)) { $sevenZip = "7z" }
+        & $sevenZip x $archivePath "-o$toolboxDir" -y
+
+        $toolboxPath = Get-ChildItem -Path $toolboxDir -Filter Toolbox.exe -Recurse -File | Select-Object -First 1
+        if (-not $toolboxPath) {
+          Write-Error "Toolbox.exe not found after extraction"
+          exit 1
+        }
+        Add-Content $env:GITHUB_PATH $toolboxPath.DirectoryName
+        Write-Host "Toolbox found at: $($toolboxPath.FullName)"
+        
+    - name: Extract version from tag
+      id: get_version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $version = $tag -replace '^v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Building version: $version"
+    
+    - name: Restore NuGet packages
+      shell: pwsh
+      run: |
+        cd SteamDeckProtonDb
+        # Use nuget restore with explicit packages directory (same as local build script)
+        nuget restore SteamDeckProtonDb.sln -PackagesDirectory packages
+        
+    - name: Run release build
+      shell: pwsh
+      run: |
+        cd SteamDeckProtonDb
+        .\release-build.ps1 -Version "${{ steps.get_version.outputs.VERSION }}" -SkipTests
+        
+    - name: Find release package
+      id: find_package
+      shell: pwsh
+      run: |
+        $pextFile = Get-ChildItem -Path "releases" -Filter "*.pext" | Select-Object -First 1
+        if ($pextFile) {
+          # Use forward slashes to keep softprops/action-gh-release happy on Windows
+          $packagePath = $pextFile.FullName -replace '\\','/'
+          echo "PACKAGE_PATH=$packagePath" >> $env:GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$($pextFile.Name)" >> $env:GITHUB_OUTPUT
+        } else {
+          Write-Error "No .pext file found in releases directory"
+          exit 1
+        }
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ steps.find_package.outputs.PACKAGE_PATH }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
