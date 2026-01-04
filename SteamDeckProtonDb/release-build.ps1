@@ -178,9 +178,20 @@ dotnet clean $proj -c Release 2>&1 | Out-Null
 
 # Restore NuGet packages
 Write-Host "Restoring NuGet packages..." -ForegroundColor Cyan
-dotnet restore $solution
+$nugetPath = Join-Path $scriptRoot 'nuget.exe'
+if (-not (Test-Path $nugetPath)) {
+    Write-Host "Downloading nuget.exe..."
+    $url = 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $nugetPath -UseBasicParsing
+    } catch {
+        Write-Error "Failed to download nuget.exe: $_"
+        exit 1
+    }
+}
+& $nugetPath restore $solution
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "dotnet restore failed with exit code $LASTEXITCODE"
+    Write-Error "nuget restore failed with exit code $LASTEXITCODE"
     exit 1
 }
 

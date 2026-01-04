@@ -18,6 +18,9 @@ jobs:
       with:
         dotnet-version: '6.0.x'
         
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+        
     - name: Extract version from tag
       id: get_version
       shell: pwsh
@@ -30,7 +33,7 @@ jobs:
     - name: Restore NuGet packages
       shell: pwsh
       run: |
-        dotnet restore SteamDeckProtonDb/SteamDeckProtonDb.sln
+        nuget restore SteamDeckProtonDb/SteamDeckProtonDb.sln
         
     - name: Run release build
       shell: pwsh
