@@ -11,6 +11,7 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
+debug.log
 
 # Visual Studio cache/options
 .vs/

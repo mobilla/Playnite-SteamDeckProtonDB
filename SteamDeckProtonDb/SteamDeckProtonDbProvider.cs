@@ -16,6 +16,7 @@ namespace SteamDeckProtonDb
         private readonly MetadataFetcher fetcher;
         private readonly MetadataProcessor processor;
         private readonly MetadataUpdater updater;
+        private int? resolvedAppId;
 
         public override List<MetadataField> AvailableFields => new List<MetadataField> 
         { 
@@ -54,6 +55,36 @@ namespace SteamDeckProtonDb
             // Return null to preserve existing description; the plugin doesn't modify descriptions
             // Instead, metadata is provided via categories, tags, and links
             return null;
+        }
+
+        private int ResolveAppId()
+        {
+            if (resolvedAppId.HasValue)
+            {
+                return resolvedAppId.Value;
+            }
+
+            var logger = Playnite.SDK.LogManager.GetLogger();
+            try
+            {
+                var appIdTask = plugin.TryGetAppIdAsync(options?.GameData);
+                if (appIdTask.Wait(TimeSpan.FromSeconds(10)))
+                {
+                    resolvedAppId = appIdTask.Result;
+                }
+                else
+                {
+                    resolvedAppId = 0;
+                    logger.Debug($"ResolveAppId timed out for game '{options?.GameData?.Name}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                resolvedAppId = 0;
+                logger.Debug($"ResolveAppId failed for game '{options?.GameData?.Name}': {ex.Message}");
+            }
+
+            return resolvedAppId ?? 0;
         }
 
         private FetchResult FetchData(int appId)
@@ -95,11 +126,7 @@ namespace SteamDeckProtonDb
         public override IEnumerable<Link> GetLinks(GetMetadataFieldArgs args)
         {
             var gameMeta = options.GameData;
-            int appId = 0;
-            if (gameMeta != null && !string.IsNullOrEmpty(gameMeta.GameId))
-            {
-                int.TryParse(gameMeta.GameId, out appId);
-            }
+            var appId = ResolveAppId();
 
             Playnite.SDK.LogManager.GetLogger().Debug($"GetLinks called for appId: {appId}");
             if (appId <= 0) return new List<Link>();
@@ -137,11 +164,7 @@ namespace SteamDeckProtonDb
         public override IEnumerable<MetadataProperty> GetTags(GetMetadataFieldArgs args)
         {
             var gameMeta = options.GameData;
-            int appId = 0;
-            if (gameMeta != null && !string.IsNullOrEmpty(gameMeta.GameId))
-            {
-                int.TryParse(gameMeta.GameId, out appId);
-            }
+            var appId = ResolveAppId();
 
             var logger = Playnite.SDK.LogManager.GetLogger();
             logger.Debug($"GetTags called for appId: {appId}");
@@ -167,11 +190,7 @@ namespace SteamDeckProtonDb
         public override IEnumerable<MetadataProperty> GetFeatures(GetMetadataFieldArgs args)
         {
             var gameMeta = options.GameData;
-            int appId = 0;
-            if (gameMeta != null && !string.IsNullOrEmpty(gameMeta.GameId))
-            {
-                int.TryParse(gameMeta.GameId, out appId);
-            }
+            var appId = ResolveAppId();
 
             var logger = Playnite.SDK.LogManager.GetLogger();
             logger.Debug($"GetFeatures called for appId: {appId}");

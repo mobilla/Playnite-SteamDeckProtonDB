@@ -183,7 +183,7 @@ namespace SteamDeckProtonDb
         /// <summary>
         /// Try to extract Steam App ID from game links (e.g., Steam store URLs)
         /// </summary>
-        private bool TryGetAppIdFromLinks(Game game, out int appId)
+        internal bool TryGetAppIdFromLinks(Game game, out int appId)
         {
             appId = 0;
             var links = game?.Links;
@@ -215,7 +215,7 @@ namespace SteamDeckProtonDb
         /// - Requires numeric tokens in title to also appear in matched name
         /// - Evaluates all search results from Steam Store search
         /// </summary>
-        private async System.Threading.Tasks.Task<int> TryGetAppIdFromSteamApiAsync(Game game)
+        internal async System.Threading.Tasks.Task<int> TryGetAppIdFromSteamApiAsync(Game game)
         {
             if (game == null || string.IsNullOrEmpty(game.Name))
             {
@@ -345,7 +345,7 @@ namespace SteamDeckProtonDb
         /// <summary>
         /// Get App ID using fallback chain: direct ID → links → Steam API
         /// </summary>
-        private async System.Threading.Tasks.Task<int> TryGetAppIdAsync(Game game)
+        internal async System.Threading.Tasks.Task<int> TryGetAppIdAsync(Game game)
         {
             // Primary: direct GameId (Steam games)
             if (game != null && int.TryParse(game.GameId, out var directId) && directId > 0)

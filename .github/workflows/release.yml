@@ -1,0 +1,57 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+        
+    - name: Extract version from tag
+      id: get_version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $version = $tag -replace '^v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Building version: $version"
+        
+    - name: Run release build
+      shell: pwsh
+      run: |
+        cd SteamDeckProtonDb
+        .\release-build.ps1 -Version "${{ steps.get_version.outputs.VERSION }}"
+        
+    - name: Find release package
+      id: find_package
+      shell: pwsh
+      run: |
+        $pextFile = Get-ChildItem -Path "releases" -Filter "*.pext" | Select-Object -First 1
+        if ($pextFile) {
+          echo "PACKAGE_PATH=$($pextFile.FullName)" >> $env:GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$($pextFile.Name)" >> $env:GITHUB_OUTPUT
+        } else {
+          Write-Error "No .pext file found in releases directory"
+          exit 1
+        }
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ steps.find_package.outputs.PACKAGE_PATH }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
