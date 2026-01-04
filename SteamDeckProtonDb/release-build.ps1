@@ -29,8 +29,8 @@ function Update-Yaml {
     param([string]$Path, [hashtable]$Updates)
     $content = Get-Content $Path -Raw
     foreach ($key in $Updates.Keys) {
-        $pattern = "(?m)^$key:.*"
-        $replacement = "$key`: $($Updates[$key])"
+        $pattern = "(?m)^${key}:.*"
+        $replacement = "${key}: $($Updates[$key])"
         $content = $content -replace $pattern, $replacement
     }
     Set-Content -Path $Path -Value $content -Encoding UTF8 -NoNewline
