@@ -115,7 +115,7 @@ jobs:
       shell: pwsh
       run: |
         cd SteamDeckProtonDb
-        .\release-build.ps1 -Version "${{ steps.get_version.outputs.VERSION }}" -SkipTests
+        .\release-build.ps1 -Version "${{ steps.get_version.outputs.MANIFEST_VERSION }}" -SkipTests
         
     - name: Find release package
       id: find_package
