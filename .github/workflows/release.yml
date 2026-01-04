@@ -21,6 +21,41 @@ jobs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2
         
+    - name: Download Playnite Toolbox
+      shell: pwsh
+      run: |
+        $toolboxDir = "${{ runner.temp }}\playnite"
+        New-Item -ItemType Directory -Path $toolboxDir -Force | Out-Null
+        
+        # Get latest Playnite release
+        $releaseUrl = "https://api.github.com/repos/JosefNemec/Playnite/releases/latest"
+        $release = Invoke-RestMethod -Uri $releaseUrl
+        
+        # Find the portable release asset
+        $asset = $release.assets | Where-Object { $_.name -like "*portable*" -or $_.name -like "*.zip" } | Select-Object -First 1
+        if (-not $asset) {
+          Write-Error "Could not find Playnite release package"
+          exit 1
+        }
+        
+        $downloadUrl = $asset.browser_download_url
+        $zipPath = Join-Path $toolboxDir "playnite.zip"
+        
+        Write-Host "Downloading Playnite from: $downloadUrl"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
+        
+        Write-Host "Extracting Playnite..."
+        Expand-Archive -Path $zipPath -DestinationPath $toolboxDir -Force
+        
+        # Toolbox.exe is inside the extracted Playnite folder
+        $toolboxPath = Get-ChildItem -Path $toolboxDir -Filter Toolbox.exe -Recurse -File | Select-Object -First 1
+        if (-not $toolboxPath) {
+          Write-Error "Toolbox.exe not found after extraction"
+          exit 1
+        }
+        Add-Content $env:GITHUB_PATH $toolboxPath.DirectoryName
+        Write-Host "Toolbox found at: $($toolboxPath.FullName)"
+        
     - name: Extract version from tag
       id: get_version
       shell: pwsh
