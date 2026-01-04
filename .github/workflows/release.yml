@@ -128,22 +128,22 @@ jobs:
         
         Write-Host "Updating manifests for version $version on branch $branch"
 
-        # Update extension.yaml version
+        # Update extension.yaml version (ensure space after colon)
         $extensionContent = Get-Content "SteamDeckProtonDb/extension.yaml" -Raw
-        $extensionContent = $extensionContent -replace '^Version:\s*.*', "Version: $version"
-        Set-Content "SteamDeckProtonDb/extension.yaml" -Value $extensionContent -Encoding UTF8
+        $extensionContent = $extensionContent -replace '(?m)^Version:.*', "Version: $version"
+        Set-Content "SteamDeckProtonDb/extension.yaml" -Value $extensionContent -Encoding UTF8 -NoNewline
 
-        # Update installer manifest fields
-        $installer = Get-Content $installerPath
-        $installer = $installer -replace '(?<=- Version:\s*).*', $version
-        $installer = $installer -replace '(?<=ReleaseDate:\s*).*', $releaseDate
-        $installer = $installer -replace '(?<=PackageUrl:\s*).*', $packageUrl
-        Set-Content $installerPath -Value $installer -Encoding UTF8
+        # Update installer manifest fields (preserve YAML formatting with space after colon)
+        $installerContent = Get-Content $installerPath -Raw
+        $installerContent = $installerContent -replace '(?m)^(\s*)- Version:.*', "`$1- Version: $version"
+        $installerContent = $installerContent -replace '(?m)^(\s*)ReleaseDate:.*', "`$1ReleaseDate: $releaseDate"
+        $installerContent = $installerContent -replace '(?m)^(\s*)PackageUrl:.*', "`$1PackageUrl: $packageUrl"
+        Set-Content $installerPath -Value $installerContent -Encoding UTF8 -NoNewline
 
-        # Update addon manifest to point to installer on main
-        $addon = Get-Content $addonPath
-        $addon = $addon -replace '(?<=InstallerManifestUrl:\s*).*', $installerUrl
-        Set-Content $addonPath -Value $addon -Encoding UTF8
+        # Update addon manifest (preserve YAML formatting with space after colon)
+        $addonContent = Get-Content $addonPath -Raw
+        $addonContent = $addonContent -replace '(?m)^InstallerManifestUrl:.*', "InstallerManifestUrl: $installerUrl"
+        Set-Content $addonPath -Value $addonContent -Encoding UTF8 -NoNewline
         
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
