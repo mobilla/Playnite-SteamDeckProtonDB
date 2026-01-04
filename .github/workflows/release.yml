@@ -69,6 +69,22 @@ jobs:
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         echo "Building version: $version"
     
+    - name: Detect source branch
+      id: get_branch
+      shell: pwsh
+      run: |
+        # Get the branch that contains this tag
+        $branch = git branch -r --contains ${{ github.ref }} | Where-Object { $_ -match 'origin/' } | Select-Object -First 1
+        if ($branch) {
+          $branch = $branch.Trim() -replace 'origin/', ''
+          echo "BRANCH=$branch" >> $env:GITHUB_OUTPUT
+          Write-Host "Tag is on branch: $branch"
+        } else {
+          # Fallback to main if detection fails
+          echo "BRANCH=main" >> $env:GITHUB_OUTPUT
+          Write-Host "Could not detect branch, defaulting to main"
+        }
+    
     - name: Restore NuGet packages
       shell: pwsh
       run: |
@@ -96,6 +112,38 @@ jobs:
           Write-Error "No .pext file found in releases directory"
           exit 1
         }
+
+    - name: Update manifests with release info
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $packageName = "${{ steps.find_package.outputs.PACKAGE_NAME }}"
+        $repo = "${{ github.repository }}"
+        $branch = "${{ steps.get_branch.outputs.BRANCH }}"
+        $releaseDate = (Get-Date).ToString('yyyy-MM-dd')
+        $addonPath = "docs/addon-manifests/SteamDeckProtonDb-addon.yaml"
+        $installerPath = "docs/addon-manifests/SteamDeckProtonDb-installer.yaml"
+        $packageUrl = "https://github.com/$repo/releases/download/v$version/$packageName"
+        $installerUrl = "https://raw.githubusercontent.com/$repo/$branch/$installerPath"
+        
+        Write-Host "Updating manifests for version $version on branch $branch"
+
+        # Update extension.yaml version (ensure space after colon)
+        $extensionContent = Get-Content "SteamDeckProtonDb/extension.yaml" -Raw
+        $extensionContent = $extensionContent -replace '(?m)^Version:.*', "Version: $version"
+        Set-Content "SteamDeckProtonDb/extension.yaml" -Value $extensionContent -Encoding UTF8 -NoNewline
+
+        # Update installer manifest fields (preserve YAML formatting with space after colon)
+        $installerContent = Get-Content $installerPath -Raw
+        $installerContent = $installerContent -replace '(?m)^(\s*)- Version:.*', "`$1- Version: $version"
+        $installerContent = $installerContent -replace '(?m)^(\s*)ReleaseDate:.*', "`$1ReleaseDate: $releaseDate"
+        $installerContent = $installerContent -replace '(?m)^(\s*)PackageUrl:.*', "`$1PackageUrl: $packageUrl"
+        Set-Content $installerPath -Value $installerContent -Encoding UTF8 -NoNewline
+
+        # Update addon manifest (preserve YAML formatting with space after colon)
+        $addonContent = Get-Content $addonPath -Raw
+        $addonContent = $addonContent -replace '(?m)^InstallerManifestUrl:.*', "InstallerManifestUrl: $installerUrl"
+        Set-Content $addonPath -Value $addonContent -Encoding UTF8 -NoNewline
         
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -106,3 +154,50 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit updated manifests back to source branch
+      shell: pwsh
+      run: |
+        $branch = "${{ steps.get_branch.outputs.BRANCH }}"
+        Write-Host "Committing manifests back to branch: $branch"
+        
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Fetch latest branch to avoid rejection due to updates during workflow
+        git fetch origin $branch
+        
+        # Checkout source branch (currently in detached HEAD at tag)
+        git checkout $branch
+        
+        # Re-apply manifest updates (they were staged before checkout)
+        git add docs/addon-manifests/*.yaml SteamDeckProtonDb/extension.yaml
+        
+        # Only commit if there are changes
+        if (git diff --staged --quiet) {
+          Write-Host "No manifest changes to commit"
+        } else {
+          git commit -m "chore: update manifests for v${{ steps.get_version.outputs.VERSION }} [skip ci]"
+          git push origin $branch
+          Write-Host "Manifests committed and pushed to $branch"
+        }
+
+    - name: Verify manifests with Toolbox
+      shell: pwsh
+      run: |
+        Write-Host "Waiting 10 seconds for GitHub to propagate release assets..."
+        Start-Sleep -Seconds 10
+        
+        Write-Host "Verifying installer manifest..."
+        toolbox.exe verify installer docs/addon-manifests/SteamDeckProtonDb-installer.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "Installer manifest verification failed. This may be due to asset propagation delay."
+        }
+        
+        Write-Host "Verifying addon manifest..."
+        toolbox.exe verify addon docs/addon-manifests/SteamDeckProtonDb-addon.yaml
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "Addon manifest verification failed. This may be due to asset propagation delay."
+        }
+        
+        Write-Host "Manifest verification completed. Check warnings above if any."
