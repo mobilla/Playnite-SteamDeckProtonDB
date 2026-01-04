@@ -110,8 +110,9 @@ jobs:
         $installerUrl = "https://raw.githubusercontent.com/$repo/main/$installerPath"
 
         # Update extension.yaml version
-        (Get-Content "SteamDeckProtonDb/extension.yaml") -replace '^(Version:\s*).*','$1'+$version |
-          Set-Content "SteamDeckProtonDb/extension.yaml" -Encoding UTF8
+        $extensionContent = Get-Content "SteamDeckProtonDb/extension.yaml" -Raw
+        $extensionContent = $extensionContent -replace '^Version:\s*.*', "Version: $version"
+        Set-Content "SteamDeckProtonDb/extension.yaml" -Value $extensionContent -Encoding UTF8
 
         # Update installer manifest fields
         $installer = Get-Content $installerPath
